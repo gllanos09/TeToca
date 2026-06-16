@@ -57,11 +57,11 @@
 </tr>
 <tr>
 <td align="center"><b>Gabriel Llanos</b></td>
-<td>Base del proyecto, entidades <code>Producto</code>/<code>Proveedor</code>, capa de datos (Room), navegación, vertical de Proveedores (CRUD), configuración general</td>
+<td>Base del proyecto, entidades <code>Producto</code>/<code>Proveedor</code>, capa de datos (Room), navegación, vertical de Proveedores (CRUD)</td>
 </tr>
 <tr>
-<td align="center"><b>William</b></td>
-<td>Vertical de Productos: lista, detalle, formulario, integración de la API de tipo de cambio (Retrofit)</td>
+<td align="center"><b>William Julon</b></td>
+<td>Vertical de Productos: configuración general, lista, detalle, formulario, integración de la API de tipo de cambio (Retrofit)</td>
 </tr>
 </table>
 
