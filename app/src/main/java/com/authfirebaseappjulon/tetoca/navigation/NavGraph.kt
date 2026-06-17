@@ -1,7 +1,6 @@
 package com.authfirebaseappjulon.tetoca.navigation
 
 import androidx.compose.runtime.Composable
-import androidx.navigation.NamedNavArgument
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -27,6 +26,9 @@ fun NavGraph() {
                 },
                 onNuevoProducto = {
                     navController.navigate(Rutas.Formulario.crearRutaNuevo())
+                },
+                onProveedoresClick = {
+                    navController.navigate(Rutas.Proveedores.ruta)
                 }
             )
         }
