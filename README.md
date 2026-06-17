@@ -45,7 +45,7 @@
 <tr><td><b>Ciclo / período</b></td><td>2026 - I</td></tr>
 <tr><td><b>Temática</b></td><td>Propuesta propia, aprobada por el docente: Inventario inteligente</td></tr>
 <tr><td><b>Plataforma</b></td><td>Android nativo (Kotlin + Jetpack Compose)</td></tr>
-<tr><td><b>Paquete base</b></td><td><code>com.authfirebaseappjulon.tetoca</code></td></tr>
+<tr><td><b>Paquete base</b></td><td><code>com.tetocaApp.tetoca</code></td></tr>
 </table>
 
 ## 👥 Equipo
