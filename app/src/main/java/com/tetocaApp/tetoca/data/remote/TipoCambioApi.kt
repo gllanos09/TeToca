@@ -1,10 +1,11 @@
 package com.tetocaApp.tetoca.data.remote
 
 import retrofit2.http.GET
-import retrofit2.http.Path
-
+import retrofit2.http.Query
 interface TipoCambioApi {
-    // Ej: GET https://open.er-api.com/v6/latest/USD
-    @GET("v6/latest/{base}")
-    suspend fun obtenerTasas(@Path("base") base: String): TipoCambioResponse
+    @GET("v1/latest")
+    suspend fun obtenerTasas(
+        @Query("base") base: String,
+        @Query("symbols") symbols: String
+    ): TipoCambioResponse
 }
