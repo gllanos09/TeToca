@@ -8,9 +8,9 @@ import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.tetocaApp.tetoca.data.local.Producto
 import com.tetocaApp.tetoca.data.local.Proveedor
-import com.tetocaApp.tetoca.data.local.ProveedorDao
 import com.tetocaApp.tetoca.data.local.TeTocaDatabase
 import com.tetocaApp.tetoca.data.repository.ProductoRepository
+import com.tetocaApp.tetoca.data.repository.ProveedorRepository
 import com.tetocaApp.tetoca.data.repository.TipoCambioRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -37,9 +37,7 @@ data class FormularioUiState(
 
 class FormularioViewModel(
     private val productoRepo: ProductoRepository,
-    // Lectura de proveedores para el selector. Se puede cambiar por ProveedorRepository
-    // (el de Gabriel) sin tocar la vista.
-    private val proveedorDao: ProveedorDao,
+    private val proveedorRepo: ProveedorRepository,
     private val tipoCambioRepo: TipoCambioRepository,
     private val productoId: Long?
 ) : ViewModel() {
@@ -55,7 +53,7 @@ class FormularioViewModel(
 
     private fun observarProveedores() {
         viewModelScope.launch {
-            proveedorDao.obtenerTodos().collect { lista ->
+            proveedorRepo.obtenerTodos().collect { lista ->
                 _uiState.value = _uiState.value.copy(proveedores = lista)
             }
         }
@@ -147,7 +145,7 @@ class FormularioViewModel(
                 val db = TeTocaDatabase.getInstance(context)
                 FormularioViewModel(
                     productoRepo = ProductoRepository(db.productoDao()),
-                    proveedorDao = db.proveedorDao(),
+                    proveedorRepo = ProveedorRepository(db.proveedorDao()),
                     tipoCambioRepo = TipoCambioRepository(),
                     productoId = productoId
                 )
