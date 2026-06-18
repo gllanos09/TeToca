@@ -7,14 +7,18 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.LocalShipping
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -57,7 +61,7 @@ import com.tetocaApp.tetoca.viewmodel.ProveedoresViewModel
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ProveedoresScreen() {
+fun ProveedoresScreen(onVolver: () -> Unit) {
     val context = LocalContext.current
     val viewModel: ProveedoresViewModel = viewModel(
         factory = ProveedoresViewModel.Factory(context)
@@ -71,6 +75,11 @@ fun ProveedoresScreen() {
         topBar = {
             TopAppBar(
                 title = { Text("Proveedores") },
+                navigationIcon = {
+                    IconButton(onClick = onVolver) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Volver")
+                    }
+                },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.primary
                 )
@@ -88,14 +97,29 @@ fun ProveedoresScreen() {
         Box(modifier = Modifier.fillMaxSize().padding(padding)) {
             when {
                 uiState.cargando -> {
-                    CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
+                    CircularProgressIndicator(
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.align(Alignment.Center)
+                    )
                 }
 
                 uiState.proveedores.isEmpty() -> {
-                    Text(
-                        "Todavía no tienes proveedores registrados.\nUsa el botón + para agregar el primero.",
-                        modifier = Modifier.align(Alignment.Center).padding(24.dp)
-                    )
+                    Column(
+                        modifier = Modifier.align(Alignment.Center).padding(24.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Icon(
+                            Icons.Filled.LocalShipping,
+                            contentDescription = null,
+                            modifier = Modifier.size(48.dp),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Text(
+                            "Todavía no tienes proveedores registrados.\nUsa el botón + para agregar el primero.",
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
                 }
 
                 else -> {
@@ -178,7 +202,11 @@ private fun ProveedorItem(
                     Icon(Icons.Filled.Edit, contentDescription = "Editar proveedor")
                 }
                 IconButton(onClick = onEliminar) {
-                    Icon(Icons.Filled.Delete, contentDescription = "Eliminar proveedor")
+                    Icon(
+                        Icons.Filled.Delete,
+                        contentDescription = "Eliminar proveedor",
+                        tint = MaterialTheme.colorScheme.error
+                    )
                 }
             }
         }
@@ -233,6 +261,9 @@ private fun FormularioProveedorBottomSheet(
             Button(
                 onClick = { onGuardar(nombre, telefono, notas) },
                 enabled = !guardando,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.primary
+                ),
                 modifier = Modifier.fillMaxWidth().padding(top = 20.dp)
             ) {
                 Text(if (guardando) "Guardando..." else "Guardar")

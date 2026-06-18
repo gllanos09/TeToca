@@ -40,6 +40,7 @@ fun NavGraph() {
             val productoId = backStackEntry.arguments?.getLong("productoId") ?: 0L
             DetalleScreen(
                 productoId = productoId,
+                onVolver = { navController.popBackStack() },
                 onEditar = { id ->
                     navController.navigate(Rutas.Formulario.crearRutaEditar(id))
                 },
@@ -62,6 +63,7 @@ fun NavGraph() {
             val productoId = if (idRecibido == -1L) null else idRecibido
             FormularioScreen(
                 productoId = productoId,
+                onCancelar = { navController.popBackStack() },
                 onGuardado = {
                     navController.popBackStack()
                 }
@@ -69,7 +71,7 @@ fun NavGraph() {
         }
 
         composable(Rutas.Proveedores.ruta) {
-            ProveedoresScreen()
+            ProveedoresScreen(onVolver = { navController.popBackStack() })
         }
     }
 }

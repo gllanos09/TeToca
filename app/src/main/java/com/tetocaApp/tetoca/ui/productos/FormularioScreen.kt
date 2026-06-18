@@ -10,13 +10,19 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.MenuAnchorType
 import androidx.compose.material3.OutlinedTextField
@@ -39,12 +45,14 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.tetocaApp.tetoca.data.local.Proveedor
+import com.tetocaApp.tetoca.ui.theme.Emerald40
 import com.tetocaApp.tetoca.viewmodel.FormularioViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun FormularioScreen(
     productoId: Long?,
+    onCancelar: () -> Unit,
     onGuardado: () -> Unit
 ) {
     val context = LocalContext.current
@@ -58,7 +66,14 @@ fun FormularioScreen(
 
     Scaffold(
         topBar = {
-            TopAppBar(title = { Text(if (state.editando) "Editar producto" else "Nuevo producto") })
+            TopAppBar(
+                title = { Text(if (state.editando) "Editar producto" else "Nuevo producto") },
+                navigationIcon = {
+                    IconButton(onClick = onCancelar) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Cancelar")
+                    }
+                }
+            )
         }
     ) { padding ->
         Column(
@@ -131,6 +146,9 @@ fun FormularioScreen(
             Button(
                 onClick = viewModel::guardar,
                 enabled = !state.guardando && state.proveedores.isNotEmpty(),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.primary
+                ),
                 modifier = Modifier.fillMaxWidth()
             ) {
                 if (state.guardando) {
@@ -226,7 +244,18 @@ private fun TipoCambioCard(
                 }
 
                 tasa != null -> {
-                    Text("1 USD = ${"%.3f".format(tasa)} PEN", style = MaterialTheme.typography.bodyMedium)
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        Icon(
+                            Icons.Filled.CheckCircle,
+                            contentDescription = null,
+                            tint = Emerald40,
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Text("1 USD = ${"%.3f".format(tasa)} PEN", style = MaterialTheme.typography.bodyMedium)
+                    }
                     if (precioSoles != null && precioSoles > 0) {
                         Text(
                             "Tu precio ≈ US$ ${"%.2f".format(precioSoles / tasa)}",
