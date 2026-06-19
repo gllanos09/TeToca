@@ -1,9 +1,11 @@
 package com.tetocaApp.tetoca.ui.productos
 
-import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.interaction.collectIsPressedAsState
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.slideInVertically
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -12,12 +14,20 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.DeleteOutline
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.outlined.Category
+import androidx.compose.material.icons.outlined.Groups
+import androidx.compose.material.icons.outlined.Inventory2
+import androidx.compose.material.icons.outlined.Sell
+import androidx.compose.material.icons.outlined.Warning
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -25,9 +35,11 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -36,11 +48,16 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.scale
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.tetocaApp.tetoca.data.local.Producto
+import com.tetocaApp.tetoca.ui.theme.StockBajo
+import com.tetocaApp.tetoca.ui.theme.StockCritico
+import com.tetocaApp.tetoca.ui.theme.StockOk
 import com.tetocaApp.tetoca.viewmodel.DetalleViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -54,154 +71,200 @@ fun DetalleScreen(
     val context = LocalContext.current
     val viewModel: DetalleViewModel = viewModel(factory = DetalleViewModel.Factory(context, productoId))
     val state by viewModel.uiState.collectAsState()
-    var mostrarDialogo by remember { mutableStateOf(false) }
+    var confirmar by remember { mutableStateOf(false) }
 
     Scaffold(
+        containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             TopAppBar(
-                title = { Text("Detalle del producto") },
+                title = { Text("Detalle", style = MaterialTheme.typography.titleLarge) },
                 navigationIcon = {
                     IconButton(onClick = onVolver) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Volver")
                     }
-                }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.background
+                )
             )
-        }
-    ) { padding ->
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
-        ) {
-            when {
-                state.cargando -> CircularProgressIndicator(
-                    color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.align(Alignment.Center)
-                )
-
-                state.error != null -> Text(
-                    text = state.error!!,
-                    color = MaterialTheme.colorScheme.error,
-                    modifier = Modifier
-                        .align(Alignment.Center)
-                        .padding(24.dp)
-                )
-
-                state.producto != null -> {
-                    val p = state.producto!!
-                    Column(
+        },
+        bottomBar = {
+            if (state.producto != null) {
+                Surface(tonalElevation = 3.dp, color = MaterialTheme.colorScheme.surface) {
+                    Row(
                         modifier = Modifier
-                            .fillMaxSize()
-                            .padding(20.dp),
-                        verticalArrangement = Arrangement.spacedBy(16.dp)
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        Text(
-                            p.nombre,
-                            style = MaterialTheme.typography.headlineSmall,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.primary
-                        )
-
-                        // Ficha de producto: agrupar los datos en una sola
-                        // tarjeta da jerarquía visual clara frente a texto
-                        // suelto directamente sobre el fondo.
-                        Card(modifier = Modifier.fillMaxWidth()) {
-                            Column(
-                                modifier = Modifier.padding(16.dp),
-                                verticalArrangement = Arrangement.spacedBy(12.dp)
-                            ) {
-                                Campo("Categoría", p.categoria)
-                                Campo("Stock actual", p.stockActual.toString())
-                                Campo("Stock mínimo", p.stockMinimo.toString())
-                                Campo("Precio", p.precio?.let { "S/ " + "%.2f".format(it) } ?: "—")
-                                Campo("Proveedor", state.proveedorNombre ?: "—")
-                            }
+                        OutlinedButton(
+                            onClick = { confirmar = true },
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Icon(Icons.Filled.DeleteOutline, contentDescription = null)
+                            Spacer(Modifier.width(8.dp))
+                            Text("Eliminar")
                         }
-
-                        Spacer(Modifier.weight(1f))
-
-                        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                            BotonConFeedback(
-                                onClick = { mostrarDialogo = true },
-                                modifier = Modifier.weight(1f)
-                            ) {
-                                OutlinedButton(
-                                    onClick = { mostrarDialogo = true },
-                                    colors = ButtonDefaults.outlinedButtonColors(
-                                        contentColor = MaterialTheme.colorScheme.error
-                                    ),
-                                    modifier = Modifier.fillMaxWidth()
-                                ) { Text("Eliminar") }
-                            }
-                            BotonConFeedback(
-                                onClick = { onEditar(p.id) },
-                                modifier = Modifier.weight(1f)
-                            ) {
-                                Button(
-                                    onClick = { onEditar(p.id) },
-                                    colors = ButtonDefaults.buttonColors(
-                                        containerColor = MaterialTheme.colorScheme.primary
-                                    ),
-                                    modifier = Modifier.fillMaxWidth()
-                                ) { Text("Editar") }
-                            }
+                        Button(
+                            onClick = { onEditar(productoId) },
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Icon(Icons.Filled.Edit, contentDescription = null)
+                            Spacer(Modifier.width(8.dp))
+                            Text("Editar")
                         }
                     }
                 }
             }
         }
+    ) { padding ->
+        Crossfade(
+            targetState = state.cargando to (state.producto != null),
+            animationSpec = tween(300),
+            label = "detalle",
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+        ) { (cargando, hayProducto) ->
+            when {
+                cargando -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator()
+                }
+                !hayProducto -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Text(
+                        state.error ?: "No se encontró el producto",
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.error
+                    )
+                }
+                else -> Contenido(
+                    producto = state.producto!!,
+                    proveedorNombre = state.proveedorNombre
+                )
+            }
+        }
     }
 
-    if (mostrarDialogo) {
+    if (confirmar) {
         AlertDialog(
-            onDismissRequest = { mostrarDialogo = false },
+            onDismissRequest = { confirmar = false },
+            icon = { Icon(Icons.Outlined.Warning, contentDescription = null) },
             title = { Text("Eliminar producto") },
-            text = { Text("¿Seguro que deseas eliminar este producto? Esta acción no se puede deshacer.") },
+            text = { Text("Esta acción no se puede deshacer. ¿Eliminar este producto?") },
             confirmButton = {
                 TextButton(onClick = {
-                    mostrarDialogo = false
+                    confirmar = false
                     viewModel.eliminar { onEliminado() }
                 }) { Text("Eliminar") }
             },
             dismissButton = {
-                TextButton(onClick = { mostrarDialogo = false }) { Text("Cancelar") }
+                TextButton(onClick = { confirmar = false }) { Text("Cancelar") }
             }
         )
     }
 }
 
 @Composable
-private fun Campo(etiqueta: String, valor: String) {
-    Column {
-        Text(
-            etiqueta,
-            style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-        Text(valor, style = MaterialTheme.typography.bodyLarge)
+private fun Contenido(producto: Producto, proveedorNombre: String?) {
+    var visible by remember { mutableStateOf(false) }
+    androidx.compose.runtime.LaunchedEffect(Unit) { visible = true }
+
+    val (color, etiqueta) = nivelStock(producto.stockActual, producto.stockMinimo)
+
+    AnimatedVisibility(
+        visible = visible,
+        enter = fadeIn(tween(400)) + slideInVertically(tween(400)) { it / 8 }
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp)
+        ) {
+            // Cabecera
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(color.copy(alpha = 0.12f), RoundedCornerShape(20.dp))
+                    .padding(20.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                Text(
+                    producto.nombre,
+                    style = MaterialTheme.typography.headlineMedium,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = MaterialTheme.colorScheme.onBackground
+                )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Box(
+                        Modifier
+                            .background(color, RoundedCornerShape(50))
+                            .padding(horizontal = 12.dp, vertical = 6.dp)
+                    ) {
+                        Text(
+                            etiqueta,
+                            style = MaterialTheme.typography.labelLarge,
+                            color = Color.White
+                        )
+                    }
+                    Spacer(Modifier.width(12.dp))
+                    Text(
+                        "${producto.stockActual} en stock",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+
+            // Datos
+            FilaInfo(Icons.Outlined.Category, "Categoría", producto.categoria)
+            FilaInfo(Icons.Outlined.Inventory2, "Stock mínimo", "${producto.stockMinimo} unidades")
+            FilaInfo(
+                Icons.Outlined.Sell,
+                "Precio",
+                producto.precio?.let { "S/ " + "%.2f".format(it) } ?: "Sin precio"
+            )
+            FilaInfo(Icons.Outlined.Groups, "Proveedor", proveedorNombre ?: "—")
+        }
     }
 }
 
-/**
- * Envuelve un botón con feedback táctil (encogimiento leve al presionar).
- * El contenido recibe su propio onClick porque el M3 Button no expone
- * directamente su InteractionSource interno; este wrapper solo aplica
- * la escala visual alrededor.
- */
 @Composable
-private fun BotonConFeedback(
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-    content: @Composable () -> Unit
-) {
-    val interactionSource = remember { MutableInteractionSource() }
-    val presionado by interactionSource.collectIsPressedAsState()
-    val escala by animateFloatAsState(
-        targetValue = if (presionado) 0.96f else 1f,
-        animationSpec = tween(durationMillis = 120),
-        label = "escalaBoton"
-    )
-    Box(modifier = modifier.scale(escala)) {
-        content()
+private fun FilaInfo(icono: ImageVector, etiqueta: String, valor: String) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(MaterialTheme.colorScheme.surface, RoundedCornerShape(16.dp))
+            .padding(16.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Box(
+            modifier = Modifier
+                .size(40.dp)
+                .background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(12.dp)),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(icono, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+        }
+        Spacer(Modifier.width(14.dp))
+        Column {
+            Text(
+                etiqueta,
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Text(
+                valor,
+                style = MaterialTheme.typography.bodyLarge,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+        }
     }
+}
+
+private fun nivelStock(actual: Int, minimo: Int): Pair<Color, String> = when {
+    actual <= minimo -> StockCritico to "Crítico"
+    actual <= minimo * 2 -> StockBajo to "Bajo"
+    else -> StockOk to "Disponible"
 }
