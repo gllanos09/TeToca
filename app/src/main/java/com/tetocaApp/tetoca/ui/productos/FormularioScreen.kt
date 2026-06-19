@@ -43,41 +43,52 @@ fun FormularioScreen(
     LaunchedEffect(state.guardado) { if (state.guardado) onGuardado() }
 
     Scaffold(
-        containerColor = MaterialTheme.colorScheme.background,
+        containerColor = FondoClaro,
         topBar = {
-            TopAppBar(
+            LargeTopAppBar(
                 title = {
                     Text(
-                        if (state.editando) "Editar producto" else "Nuevo producto",
-                        style = MaterialTheme.typography.titleLarge,
-                        color = MaterialTheme.colorScheme.onBackground
+                        if (state.editando) "Editar Producto" else "Nuevo Producto",
+                        style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Black),
+                        color = SobreFondoClaro
                     )
                 },
                 navigationIcon = {
                     IconButton(onClick = onCancelar) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, null, Modifier.size(26.dp))
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, null, Modifier.size(28.dp), tint = AzulPrimario)
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background)
+                colors = TopAppBarDefaults.largeTopAppBarColors(containerColor = FondoClaro)
             )
         },
         bottomBar = {
-            Surface(color = MaterialTheme.colorScheme.background) {
-                Button(
-                    onClick = viewModel::guardar,
-                    enabled = !state.guardando && state.proveedores.isNotEmpty(),
-                    modifier = Modifier.fillMaxWidth().navigationBarsPadding()
-                        .padding(horizontal = 20.dp, vertical = 12.dp).height(56.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = Violeta),
-                    shape = RoundedCornerShape(16.dp)
+            Surface(
+                Modifier.fillMaxWidth(),
+                color = FondoClaro,
+                shadowElevation = 8.dp
+            ) {
+                Box(
+                    Modifier
+                        .navigationBarsPadding()
+                        .padding(24.dp)
                 ) {
-                    if (state.guardando) {
-                        CircularProgressIndicator(Modifier.size(22.dp), strokeWidth = 2.5.dp, color = Color.White)
-                    } else {
-                        Text(
-                            if (state.editando) "GUARDAR CAMBIOS" else "CREAR PRODUCTO",
-                            style = MaterialTheme.typography.labelLarge
-                        )
+                    Button(
+                        onClick = viewModel::guardar,
+                        enabled = !state.guardando && state.proveedores.isNotEmpty(),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(56.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = AzulPrimario),
+                        shape = RoundedCornerShape(16.dp)
+                    ) {
+                        if (state.guardando) {
+                            CircularProgressIndicator(Modifier.size(24.dp), strokeWidth = 3.dp, color = Color.White)
+                        } else {
+                            Text(
+                                "CONFIRMAR",
+                                style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.ExtraBold)
+                            )
+                        }
                     }
                 }
             }
@@ -88,45 +99,91 @@ fun FormularioScreen(
                 .fillMaxSize()
                 .padding(padding)
                 .verticalScroll(rememberScrollState())
-                .padding(horizontal = 20.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp)
+                .padding(24.dp),
+            verticalArrangement = Arrangement.spacedBy(24.dp)
         ) {
-            Spacer(Modifier.height(4.dp))
-            CampoOscuro(state.nombre, viewModel::onNombreChange, "Nombre del producto")
-            CampoOscuro(state.categoria, viewModel::onCategoriaChange, "Categoría")
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                CampoOscuro(state.stockActual, viewModel::onStockActualChange, "Stock actual",
-                    KeyboardType.Number, Modifier.weight(1f))
-                CampoOscuro(state.stockMinimo, viewModel::onStockMinimoChange, "Stock mínimo",
-                    KeyboardType.Number, Modifier.weight(1f))
+            SeccionFormulario("INFORMACIÓN GENERAL") {
+                CampoiOS(state.nombre, viewModel::onNombreChange, "Nombre del producto")
+                CampoiOS(state.categoria, viewModel::onCategoriaChange, "Categoría")
             }
-            CampoOscuro(state.precio, viewModel::onPrecioChange, "Precio en soles (opcional)", KeyboardType.Decimal)
-            SelectorProveedor(state.proveedores, state.proveedorId, viewModel::onProveedorSeleccionado)
+            
+            SeccionFormulario("CONTROL DE STOCK") {
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                    CampoiOS(state.stockActual, viewModel::onStockActualChange, "Actual",
+                        KeyboardType.Number, Modifier.weight(1f))
+                    CampoiOS(state.stockMinimo, viewModel::onStockMinimoChange, "Mínimo",
+                        KeyboardType.Number, Modifier.weight(1f))
+                }
+            }
+            
+            SeccionFormulario("PRECIO Y PROVEEDOR") {
+                CampoiOS(state.precio, viewModel::onPrecioChange, "Precio (PEN)", KeyboardType.Decimal)
+                SelectorProveedor(state.proveedores, state.proveedorId, viewModel::onProveedorSeleccionado)
+            }
+            
             TasaCard(state.tasaCargando, state.tasa, state.tasaError, state.precio.toDoubleOrNull(), viewModel::cargarTipoCambio)
 
             AnimatedVisibility(state.error != null) {
-                Box(
-                    Modifier.fillMaxWidth()
-                        .background(ErrorFondo, RoundedCornerShape(12.dp))
-                        .padding(14.dp)
+                Surface(
+                    color = RojoFondo,
+                    shape = RoundedCornerShape(16.dp),
+                    modifier = Modifier.fillMaxWidth()
                 ) {
-                    Text(state.error ?: "", color = RojoStock, style = MaterialTheme.typography.bodyMedium)
+                    Text(
+                        state.error ?: "", 
+                        color = RojoStock, 
+                        style = MaterialTheme.typography.bodyMedium,
+                        modifier = Modifier.padding(16.dp)
+                    )
                 }
             }
-            AnimatedVisibility(state.proveedores.isEmpty()) {
-                Text(
-                    "⚠ Primero crea un proveedor desde la pantalla de Proveedores.",
-                    style = MaterialTheme.typography.bodySmall, color = AmbarStock
-                )
+            
+            if (state.proveedores.isEmpty()) {
+                Surface(
+                    color = AmbarFondo,
+                    shape = RoundedCornerShape(16.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(
+                        "⚠ Crea un proveedor antes de registrar productos.",
+                        style = MaterialTheme.typography.bodyMedium, 
+                        color = AmbarStock,
+                        modifier = Modifier.padding(16.dp)
+                    )
+                }
             }
-            Spacer(Modifier.height(8.dp))
+            
+            Spacer(Modifier.height(32.dp))
+        }
+    }
+}
+
+@Composable
+private fun SeccionFormulario(titulo: String, content: @Composable ColumnScope.() -> Unit) {
+    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Text(
+            titulo, 
+            style = MaterialTheme.typography.labelSmall.copy(letterSpacing = 1.sp, fontWeight = FontWeight.Bold), 
+            color = SobreVariante
+        )
+        Surface(
+            color = SuperficieClara,
+            shape = RoundedCornerShape(24.dp),
+            shadowElevation = 1.dp,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Column(
+                modifier = Modifier.padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp),
+                content = content
+            )
         }
     }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun CampoOscuro(
+private fun CampoiOS(
     valor: String, onChange: (String) -> Unit, etiqueta: String,
     teclado: KeyboardType = KeyboardType.Text, modifier: Modifier = Modifier
 ) {
@@ -134,18 +191,12 @@ private fun CampoOscuro(
         value = valor, onValueChange = onChange,
         label = { Text(etiqueta) },
         singleLine = true,
-        shape = RoundedCornerShape(12.dp),
+        shape = RoundedCornerShape(16.dp),
         keyboardOptions = KeyboardOptions(keyboardType = teclado),
         colors = OutlinedTextFieldDefaults.colors(
-            focusedBorderColor = Violeta,
-            unfocusedBorderColor = Borde,
-            focusedLabelColor = VioletaClaro,
-            unfocusedLabelColor = SobreVariante,
-            focusedTextColor = SobreFondo,
-            unfocusedTextColor = SobreSuperficie,
-            cursorColor = Violeta,
-            focusedContainerColor = Superficie,
-            unfocusedContainerColor = Superficie
+            focusedBorderColor = AzulPrimario,
+            unfocusedBorderColor = BordeClaro,
+            focusedLabelColor = AzulPrimario
         ),
         modifier = modifier.fillMaxWidth()
     )
@@ -156,28 +207,38 @@ private fun CampoOscuro(
 private fun SelectorProveedor(proveedores: List<Proveedor>, proveedorId: Long?, onSeleccion: (Long) -> Unit) {
     var expandido by remember { mutableStateOf(false) }
     val sel = proveedores.find { it.id == proveedorId }
-    ExposedDropdownMenuBox(expandido, { expandido = !expandido }) {
+    ExposedDropdownMenuBox(
+        expanded = expandido,
+        onExpandedChange = { expandido = !expandido }
+    ) {
         OutlinedTextField(
             value = sel?.nombre ?: "",
             onValueChange = {},
             readOnly = true,
             label = { Text("Proveedor") },
-            placeholder = { Text("Selecciona", color = SobreVariante) },
-            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expandido) },
-            shape = RoundedCornerShape(12.dp),
+            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandido) },
+            shape = RoundedCornerShape(16.dp),
             colors = OutlinedTextFieldDefaults.colors(
-                focusedBorderColor = Violeta, unfocusedBorderColor = Borde,
-                focusedLabelColor = VioletaClaro, unfocusedLabelColor = SobreVariante,
-                focusedTextColor = SobreFondo, unfocusedTextColor = SobreSuperficie,
-                focusedContainerColor = Superficie, unfocusedContainerColor = Superficie
+                focusedBorderColor = AzulPrimario,
+                unfocusedBorderColor = BordeClaro,
+                focusedLabelColor = AzulPrimario
             ),
-            modifier = Modifier.menuAnchor(MenuAnchorType.PrimaryNotEditable).fillMaxWidth()
+            modifier = Modifier
+                .menuAnchor(MenuAnchorType.PrimaryNotEditable)
+                .fillMaxWidth()
         )
-        ExposedDropdownMenu(expandido, { expandido = false }, containerColor = SuperficieAlt) {
+        ExposedDropdownMenu(
+            expanded = expandido,
+            onDismissRequest = { expandido = false },
+            containerColor = SuperficieClara
+        ) {
             proveedores.forEach { prov ->
                 DropdownMenuItem(
-                    text = { Text(prov.nombre, color = SobreFondo) },
-                    onClick = { onSeleccion(prov.id); expandido = false }
+                    text = { Text(prov.nombre, color = SobreFondoClaro) },
+                    onClick = {
+                        onSeleccion(prov.id)
+                        expandido = false
+                    }
                 )
             }
         }
@@ -189,35 +250,28 @@ private enum class EstadoTasa { CARGANDO, OK, ERROR }
 @Composable
 private fun TasaCard(cargando: Boolean, tasa: Double?, error: String?, precioSoles: Double?, onReintentar: () -> Unit) {
     val est = when { cargando -> EstadoTasa.CARGANDO; error != null -> EstadoTasa.ERROR; else -> EstadoTasa.OK }
-    Column(
-        Modifier.fillMaxWidth()
-            .background(VioletaFondo, RoundedCornerShape(16.dp))
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp)
+    Surface(
+        color = AzulFondo,
+        shape = RoundedCornerShape(24.dp),
+        modifier = Modifier.fillMaxWidth()
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Icon(Icons.Outlined.CurrencyExchange, null, Modifier.size(20.dp), tint = VioletaClaro)
-            Spacer(Modifier.width(8.dp))
-            Text("TIPO DE CAMBIO", style = MaterialTheme.typography.labelMedium, color = VioletaClaro, letterSpacing = 1.sp)
-        }
-        AnimatedContent(est, transitionSpec = { fadeIn(tween(250)) togetherWith fadeOut(tween(200)) }, label = "tasa") { e ->
-            when (e) {
-                EstadoTasa.CARGANDO -> Row(verticalAlignment = Alignment.CenterVertically) {
-                    CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp, color = Violeta)
-                    Spacer(Modifier.width(8.dp))
-                    Text("Consultando...", color = SobreVariante, style = MaterialTheme.typography.bodyMedium)
-                }
-                EstadoTasa.ERROR -> Column {
-                    Text(error ?: "Sin conexión", color = RojoStock, style = MaterialTheme.typography.bodyMedium)
-                    TextButton(onClick = onReintentar) { Text("Reintentar", color = VioletaClaro, fontWeight = FontWeight.Bold) }
-                }
-                EstadoTasa.OK -> Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                    Text("1 USD = ${tasa?.let { "%.3f".format(it) } ?: "—"} PEN",
-                        style = MaterialTheme.typography.titleMedium, color = SobreFondo, fontWeight = FontWeight.Bold)
-                    if (precioSoles != null && precioSoles > 0 && tasa != null)
-                        Text("Tu precio ≈ US$ ${"%.2f".format(precioSoles / tasa)}", color = SobreVariante,
-                            style = MaterialTheme.typography.bodySmall)
-                    Text("Tasas por ExchangeRate-API", color = SobreVariante, style = MaterialTheme.typography.labelSmall)
+        Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(Icons.Outlined.CurrencyExchange, null, Modifier.size(20.dp), tint = AzulPrimario)
+                Spacer(Modifier.width(8.dp))
+                Text("USD CONVERTER", style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Black), color = AzulPrimario)
+            }
+            AnimatedContent(est, transitionSpec = { fadeIn(tween(400)) togetherWith fadeOut(tween(400)) }, label = "tasa") { e ->
+                when (e) {
+                    EstadoTasa.CARGANDO -> CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp, color = AzulPrimario)
+                    EstadoTasa.ERROR -> TextButton(onClick = onReintentar) { Text("Reintentar conexión", color = RojoStock) }
+                    EstadoTasa.OK -> Column {
+                        Text("1 USD = S/ ${tasa?.let { "%.3f".format(it) } ?: "—"}",
+                            style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold), color = SobreFondoClaro)
+                        if (precioSoles != null && precioSoles > 0 && tasa != null) {
+                            Text("Aprox. US$ ${"%.2f".format(precioSoles / tasa)}", color = SobreVariante)
+                        }
+                    }
                 }
             }
         }

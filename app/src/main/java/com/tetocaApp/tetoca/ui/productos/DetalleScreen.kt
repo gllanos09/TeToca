@@ -6,7 +6,10 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.DeleteOutline
@@ -17,10 +20,12 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -43,129 +48,178 @@ fun DetalleScreen(
     LaunchedEffect(state.producto) { if (state.producto != null) visible = true }
 
     Scaffold(
-        containerColor = MaterialTheme.colorScheme.background,
+        containerColor = FondoClaro,
         topBar = {
-            TopAppBar(
-                title = {},
+            LargeTopAppBar(
+                title = {
+                    Text(
+                        "Detalle del Producto",
+                        style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Black),
+                        color = SobreFondoClaro
+                    )
+                },
                 navigationIcon = {
                     IconButton(onClick = onVolver) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, null, Modifier.size(26.dp))
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, null, Modifier.size(28.dp), tint = AzulPrimario)
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background)
+                actions = {
+                    IconButton(
+                        onClick = { onEditar(productoId) },
+                        modifier = Modifier.padding(end = 8.dp).clip(CircleShape).background(AzulFondo)
+                    ) {
+                        Icon(Icons.Filled.Edit, null, Modifier.size(24.dp), tint = AzulPrimario)
+                    }
+                },
+                colors = TopAppBarDefaults.largeTopAppBarColors(containerColor = FondoClaro)
             )
         },
         bottomBar = {
             if (state.producto != null) {
-                Surface(color = MaterialTheme.colorScheme.background) {
-                    Row(
+                Surface(
+                    Modifier.fillMaxWidth(),
+                    color = FondoClaro,
+                    shadowElevation = 8.dp
+                ) {
+                    Box(
                         Modifier
-                            .fillMaxWidth()
                             .navigationBarsPadding()
-                            .padding(horizontal = 20.dp, vertical = 12.dp),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                            .padding(24.dp)
                     ) {
-                        OutlinedButton(
-                            onClick = { confirmar = true },
-                            modifier = Modifier.weight(1f).height(54.dp),
-                            border = ButtonDefaults.outlinedButtonBorder(enabled = true).copy(
-                                brush = androidx.compose.ui.graphics.SolidColor(Error)
-                            )
-                        ) {
-                            Icon(Icons.Filled.DeleteOutline, null, tint = Error)
-                            Spacer(Modifier.width(8.dp))
-                            Text("Eliminar", color = Error, fontWeight = FontWeight.SemiBold)
-                        }
                         Button(
-                            onClick = { onEditar(productoId) },
-                            modifier = Modifier.weight(1f).height(54.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = Violeta)
+                            onClick = { confirmar = true },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(56.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = RojoFondo,
+                                contentColor = RojoStock
+                            ),
+                            shape = RoundedCornerShape(16.dp),
+                            elevation = ButtonDefaults.buttonElevation(defaultElevation = 0.dp)
                         ) {
-                            Icon(Icons.Filled.Edit, null)
+                            Icon(Icons.Filled.DeleteOutline, null, Modifier.size(22.dp))
                             Spacer(Modifier.width(8.dp))
-                            Text("Editar", fontWeight = FontWeight.SemiBold)
+                            Text(
+                                "ELIMINAR DEL INVENTARIO", 
+                                style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.ExtraBold)
+                            )
                         }
                     }
                 }
             }
         }
     ) { padding ->
-        when {
-            state.cargando -> Box(Modifier.fillMaxSize(), Alignment.Center) {
-                CircularProgressIndicator(color = Violeta)
-            }
-            state.producto == null -> Box(Modifier.fillMaxSize(), Alignment.Center) {
-                Text(state.error ?: "Producto no encontrado", color = Error)
-            }
-            else -> {
-                val p = state.producto!!
-                val (color, etiqueta) = nivelStock(p.stockActual, p.stockMinimo)
+        Box(Modifier.fillMaxSize()) {
+            when {
+                state.cargando -> Box(Modifier.fillMaxSize(), Alignment.Center) {
+                    CircularProgressIndicator(color = AzulPrimario)
+                }
+                state.producto == null -> Box(Modifier.fillMaxSize(), Alignment.Center) {
+                    Text(state.error ?: "Producto no encontrado", color = RojoStock, style = MaterialTheme.typography.titleLarge)
+                }
+                else -> {
+                    val p = state.producto!!
+                    val (color, etiqueta) = nivelStock(p.stockActual, p.stockMinimo)
 
-                AnimatedVisibility(
-                    visible = visible,
-                    enter = fadeIn(tween(350)) + slideInVertically(tween(350)) { it / 6 }
-                ) {
-                    Column(
-                        Modifier
-                            .fillMaxSize()
-                            .padding(padding)
-                            .padding(horizontal = 20.dp),
-                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    AnimatedVisibility(
+                        visible = visible,
+                        enter = fadeIn(tween(500)) + slideInVertically(tween(500)) { it / 8 }
                     ) {
-                        // Hero: número grande
-                        Box(
+                        Column(
                             Modifier
-                                .fillMaxWidth()
-                                .clip(RoundedCornerShape(20.dp))
-                                .background(color.copy(alpha = 0.1f))
-                                .padding(24.dp)
+                                .fillMaxSize()
+                                .padding(padding)
+                                .verticalScroll(rememberScrollState())
+                                .padding(24.dp),
+                            verticalArrangement = Arrangement.spacedBy(24.dp)
                         ) {
-                            Column {
-                                Text(
-                                    p.nombre,
-                                    style = MaterialTheme.typography.headlineMedium,
-                                    fontWeight = FontWeight.ExtraBold,
-                                    color = MaterialTheme.colorScheme.onBackground
-                                )
-                                Spacer(Modifier.height(12.dp))
-                                Row(verticalAlignment = Alignment.Bottom) {
-                                    Text(
-                                        "${p.stockActual}",
-                                        fontSize = 72.sp,
-                                        fontWeight = FontWeight.Black,
-                                        color = color,
-                                        lineHeight = 72.sp
-                                    )
-                                    Spacer(Modifier.width(10.dp))
-                                    Column(modifier = Modifier.padding(bottom = 8.dp)) {
-                                        Box(
-                                            Modifier
-                                                .background(color.copy(0.18f), RoundedCornerShape(50))
-                                                .padding(horizontal = 10.dp, vertical = 4.dp)
-                                        ) {
-                                            Text(
-                                                etiqueta.uppercase(),
-                                                style = MaterialTheme.typography.labelMedium,
-                                                color = color,
-                                                letterSpacing = 1.sp
-                                            )
+                            // Card Principal de Stock
+                            Surface(
+                                color = SuperficieClara,
+                                shape = RoundedCornerShape(32.dp),
+                                shadowElevation = 2.dp,
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Column(
+                                    modifier = Modifier.padding(32.dp),
+                                    horizontalAlignment = Alignment.CenterHorizontally
+                                ) {
+                                    Surface(
+                                        color = color.copy(alpha = 0.05f),
+                                        shape = CircleShape,
+                                        modifier = Modifier.size(160.dp),
+                                        border = androidx.compose.foundation.BorderStroke(4.dp, color.copy(alpha = 0.1f))
+                                    ) {
+                                        Box(contentAlignment = Alignment.Center) {
+                                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                                Text(
+                                                    "${p.stockActual}",
+                                                    fontSize = 64.sp,
+                                                    fontWeight = FontWeight.Black,
+                                                    color = color
+                                                )
+                                                Text(
+                                                    "UNIDADES",
+                                                    fontSize = 12.sp,
+                                                    fontWeight = FontWeight.Bold,
+                                                    color = color.copy(alpha = 0.6f),
+                                                    letterSpacing = 1.sp
+                                                )
+                                            }
                                         }
-                                        Spacer(Modifier.height(4.dp))
+                                    }
+                                    Spacer(Modifier.height(24.dp))
+                                    Text(
+                                        p.nombre,
+                                        style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Black),
+                                        color = SobreFondoClaro,
+                                        textAlign = TextAlign.Center
+                                    )
+                                    Spacer(Modifier.height(8.dp))
+                                    Surface(
+                                        color = color.copy(alpha = 0.1f),
+                                        shape = RoundedCornerShape(12.dp)
+                                    ) {
                                         Text(
-                                            "mín. ${p.stockMinimo}",
-                                            style = MaterialTheme.typography.bodySmall,
-                                            color = SobreVariante
+                                            etiqueta.uppercase(),
+                                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp),
+                                            style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Black, letterSpacing = 1.sp),
+                                            color = color
                                         )
                                     }
                                 }
                             }
-                        }
 
-                        // Filas de detalle
-                        FilaDetalle(Icons.Outlined.Category, "CATEGORÍA", p.categoria)
-                        FilaDetalle(Icons.Outlined.Sell, "PRECIO",
-                            p.precio?.let { "S/ ${"%.2f".format(it)}" } ?: "Sin precio")
-                        FilaDetalle(Icons.Outlined.Groups, "PROVEEDOR", state.proveedorNombre ?: "—")
+                            // Sección de detalles
+                            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                                Text(
+                                    "ESPECIFICACIONES", 
+                                    style = MaterialTheme.typography.labelSmall.copy(letterSpacing = 1.sp, fontWeight = FontWeight.Bold), 
+                                    color = SobreVariante
+                                )
+                                
+                                Surface(
+                                    color = SuperficieClara,
+                                    shape = RoundedCornerShape(24.dp),
+                                    shadowElevation = 1.dp,
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Column(Modifier.padding(8.dp)) {
+                                        ItemDetallePremium(Icons.Outlined.Category, "Categoría", p.categoria)
+                                        HorizontalDivider(Modifier.padding(horizontal = 56.dp), color = BordeClaro.copy(alpha = 0.5f))
+                                        ItemDetallePremium(Icons.Outlined.Payments, "Precio Unitario", 
+                                            p.precio?.let { "S/ ${"%.2f".format(it)}" } ?: "Sin precio")
+                                        HorizontalDivider(Modifier.padding(horizontal = 56.dp), color = BordeClaro.copy(alpha = 0.5f))
+                                        ItemDetallePremium(Icons.Outlined.Inventory, "Mínimo Requerido", "${p.stockMinimo} unid.")
+                                        HorizontalDivider(Modifier.padding(horizontal = 56.dp), color = BordeClaro.copy(alpha = 0.5f))
+                                        ItemDetallePremium(Icons.Outlined.BusinessCenter, "Proveedor", state.proveedorNombre ?: "No asignado")
+                                    }
+                                }
+                            }
+                            
+                            Spacer(Modifier.height(40.dp))
+                        }
                     }
                 }
             }
@@ -175,50 +229,50 @@ fun DetalleScreen(
     if (confirmar) {
         AlertDialog(
             onDismissRequest = { confirmar = false },
-            containerColor = Superficie,
-            title = { Text("¿Eliminar producto?", color = SobreFondo) },
-            text = { Text("Esta acción no se puede deshacer.", color = SobreVariante) },
+            containerColor = SuperficieClara,
+            shape = RoundedCornerShape(28.dp),
+            title = { Text("¿Eliminar producto?", color = SobreFondoClaro, fontWeight = FontWeight.Bold) },
+            text = { Text("Esta acción es irreversible y el producto desaparecerá del inventario.", color = SobreVariante) },
             confirmButton = {
                 TextButton(onClick = { confirmar = false; viewModel.eliminar { onEliminado() } }) {
-                    Text("Eliminar", color = Error, fontWeight = FontWeight.Bold)
+                    Text("Eliminar", color = RojoStock, fontWeight = FontWeight.ExtraBold)
                 }
             },
             dismissButton = {
-                TextButton(onClick = { confirmar = false }) { Text("Cancelar", color = SobreVariante) }
+                TextButton(onClick = { confirmar = false }) { Text("Cancelar", color = SobreFondoClaro) }
             }
         )
     }
 }
 
 @Composable
-private fun FilaDetalle(icono: ImageVector, etiqueta: String, valor: String) {
+private fun ItemDetallePremium(icono: ImageVector, etiqueta: String, valor: String) {
     Row(
         Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(14.dp))
-            .background(Superficie)
             .padding(16.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Box(
             Modifier
-                .size(42.dp)
+                .size(40.dp)
                 .clip(RoundedCornerShape(12.dp))
-                .background(VioletaFondo),
-            Alignment.Center
+                .background(AzulFondo),
+            contentAlignment = Alignment.Center
         ) {
-            Icon(icono, null, Modifier.size(22.dp), tint = VioletaClaro)
+            Icon(icono, null, Modifier.size(20.dp), tint = AzulPrimario)
         }
-        Spacer(Modifier.width(14.dp))
+        Spacer(Modifier.width(16.dp))
         Column {
-            Text(etiqueta, style = MaterialTheme.typography.labelSmall, color = SobreVariante, letterSpacing = 1.sp)
-            Text(valor, style = MaterialTheme.typography.bodyLarge, color = SobreFondo, fontWeight = FontWeight.SemiBold)
+            Text(etiqueta, style = MaterialTheme.typography.labelSmall, color = SobreVariante)
+            Text(valor, style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold), color = SobreFondoClaro)
         }
     }
 }
 
 private fun nivelStock(actual: Int, minimo: Int): Pair<Color, String> = when {
+    actual <= 0          -> RojoStock  to "Agotado"
     actual <= minimo     -> RojoStock  to "Crítico"
     actual <= minimo * 2 -> AmbarStock to "Bajo"
-    else                 -> VerdeStock to "Disponible"
+    else                 -> VerdeStock to "Óptimo"
 }
