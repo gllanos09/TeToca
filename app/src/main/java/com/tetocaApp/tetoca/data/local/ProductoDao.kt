@@ -6,6 +6,7 @@ import androidx.room.Insert
 import androidx.room.Query
 import androidx.room.Update
 import kotlinx.coroutines.flow.Flow
+
 @Dao
 interface ProductoDao {
 
@@ -24,11 +25,12 @@ interface ProductoDao {
     @Query("SELECT * FROM productos WHERE id = :id")
     suspend fun obtenerPorId(id: Long): Producto?
 
+    @Query("SELECT * FROM productos WHERE id = :id")
+    fun observarPorId(id: Long): Flow<Producto?>
+
     @Query("SELECT * FROM productos WHERE proveedorId = :proveedorId")
     fun obtenerPorProveedor(proveedorId: Long): Flow<List<Producto>>
 
-    // Usada en la Parte 2 para la pantalla "Productos por reponer":
-    // devuelve los productos cuyo stock actual ya cayó por debajo del mínimo.
     @Query("SELECT * FROM productos WHERE stockActual < stockMinimo ORDER BY nombre ASC")
     fun obtenerConStockBajo(): Flow<List<Producto>>
 }

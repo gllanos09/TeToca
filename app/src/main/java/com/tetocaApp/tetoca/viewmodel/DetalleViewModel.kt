@@ -13,6 +13,7 @@ import com.tetocaApp.tetoca.data.repository.ProductoRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.launch
 
 data class DetalleUiState(
@@ -24,8 +25,6 @@ data class DetalleUiState(
 
 class DetalleViewModel(
     private val repo: ProductoRepository,
-    // Lectura puntual del nombre del proveedor. Cuando Gabriel tenga ProveedorRepository,
-    // se reemplaza este DAO por ese repositorio para mantener todo detrás de repositorios.
     private val proveedorDao: ProveedorDao,
     private val productoId: Long
 ) : ViewModel() {
@@ -34,29 +33,30 @@ class DetalleViewModel(
     val uiState: StateFlow<DetalleUiState> = _uiState.asStateFlow()
 
     init {
-        cargar()
+        observarProducto()
     }
 
-    private fun cargar() {
+    private fun observarProducto() {
         viewModelScope.launch {
-            try {
-                val producto = repo.obtenerPorId(productoId)
-                if (producto == null) {
-                    _uiState.value = DetalleUiState(cargando = false, error = "El producto no existe")
-                } else {
-                    val nombreProveedor = proveedorDao.obtenerPorId(producto.proveedorId)?.nombre
-                    _uiState.value = DetalleUiState(
-                        producto = producto,
-                        proveedorNombre = nombreProveedor,
-                        cargando = false
+            repo.observarPorId(productoId)
+                .catch { e ->
+                    _uiState.value = _uiState.value.copy(
+                        cargando = false,
+                        error = e.message ?: "Error al observar el producto"
                     )
                 }
-            } catch (e: Exception) {
-                _uiState.value = DetalleUiState(
-                    cargando = false,
-                    error = e.message ?: "Error al cargar el producto"
-                )
-            }
+                .collect { producto ->
+                    if (producto == null) {
+                        _uiState.value = DetalleUiState(cargando = false, error = "El producto no existe")
+                    } else {
+                        val nombreProveedor = proveedorDao.obtenerPorId(producto.proveedorId)?.nombre
+                        _uiState.value = DetalleUiState(
+                            producto = producto,
+                            proveedorNombre = nombreProveedor,
+                            cargando = false
+                        )
+                    }
+                }
         }
     }
 

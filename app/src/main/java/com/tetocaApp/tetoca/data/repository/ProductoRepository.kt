@@ -14,6 +14,8 @@ class ProductoRepository(private val dao: ProductoDao) {
 
     suspend fun obtenerPorId(id: Long): Producto? = dao.obtenerPorId(id)
 
+    fun observarPorId(id: Long): Flow<Producto?> = dao.observarPorId(id)
+
     /** Si id == 0 inserta uno nuevo; si no, actualiza el existente. */
     suspend fun guardar(producto: Producto): Long =
         if (producto.id == 0L) {
