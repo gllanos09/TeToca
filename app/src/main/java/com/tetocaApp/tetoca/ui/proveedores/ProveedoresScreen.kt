@@ -3,7 +3,6 @@ package com.tetocaApp.tetoca.ui.proveedores
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -13,8 +12,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.DeleteOutline
-import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.outlined.Business
 import androidx.compose.material.icons.outlined.Groups
 import androidx.compose.material.icons.outlined.Phone
 import androidx.compose.material3.*
@@ -22,7 +19,6 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -51,20 +47,20 @@ fun ProveedoresScreen(onVolver: () -> Unit) {
         containerColor = FondoClaro,
         snackbarHost = { SnackbarHost(snackbar) },
         topBar = {
-            LargeTopAppBar(
-                title = { 
+            CenterAlignedTopAppBar(
+                title = {
                     Text(
-                        "Proveedores", 
-                        style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Black), 
-                        color = SobreFondoClaro
-                    ) 
+                        "DIRECTORIO DE PROVEEDORES",
+                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Black, letterSpacing = 2.sp),
+                        color = SobreVariante
+                    )
                 },
                 navigationIcon = {
                     IconButton(onClick = onVolver) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, null, Modifier.size(28.dp), tint = AzulPrimario)
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, null, tint = AzulPrimario)
                     }
                 },
-                colors = TopAppBarDefaults.largeTopAppBarColors(containerColor = FondoClaro)
+                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(containerColor = FondoClaro)
             )
         },
         floatingActionButton = {
@@ -72,9 +68,9 @@ fun ProveedoresScreen(onVolver: () -> Unit) {
                 onClick = viewModel::onNuevoProveedor,
                 containerColor = AzulPrimario,
                 contentColor = Color.White,
-                shape = RoundedCornerShape(20.dp)
+                shape = RoundedCornerShape(18.dp)
             ) {
-                Icon(Icons.Filled.Add, null, Modifier.size(28.dp))
+                Icon(Icons.Filled.Add, null, Modifier.size(30.dp))
             }
         }
     ) { padding ->
@@ -86,26 +82,28 @@ fun ProveedoresScreen(onVolver: () -> Unit) {
         ) { est ->
             when (est) {
                 0 -> Box(Modifier.fillMaxSize(), Alignment.Center) { CircularProgressIndicator(color = AzulPrimario) }
-                1 -> Box(Modifier.fillMaxSize(), Alignment.Center) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.padding(40.dp)) {
-                        Icon(Icons.Outlined.Groups, null, Modifier.size(80.dp), tint = AzulFondo)
-                        Spacer(Modifier.height(24.dp))
-                        Text("Sin contactos", fontWeight = FontWeight.Bold, fontSize = 20.sp, color = SobreFondoClaro)
-                        Text("Agrega tu primer proveedor para gestionar pedidos.", textAlign = TextAlign.Center, color = SobreVariante)
-                    }
-                }
+                1 -> EstadoVacioProveedores()
                 else -> LazyColumn(
                     Modifier.fillMaxSize(),
                     contentPadding = PaddingValues(20.dp),
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
+                    item {
+                        Text(
+                            "Gestione sus contactos de abastecimiento",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = SobreVariante,
+                            modifier = Modifier.padding(bottom = 8.dp)
+                        )
+                    }
                     items(state.proveedores, key = { it.id }) { prov ->
-                        ProveedorHeroCard(
-                            prov = prov, 
-                            onEditar = { viewModel.onEditarProveedor(prov) }, 
+                        ProveedorCompactCard(
+                            prov = prov,
+                            onEditar = { viewModel.onEditarProveedor(prov) },
                             onEliminar = { aEliminar = prov }
                         )
                     }
+                    item { Spacer(Modifier.height(80.dp)) }
                 }
             }
         }
@@ -115,9 +113,10 @@ fun ProveedoresScreen(onVolver: () -> Unit) {
         ModalBottomSheet(
             onDismissRequest = viewModel::onCerrarFormulario,
             containerColor = SuperficieClara,
-            dragHandle = { BottomSheetDefaults.DragHandle(color = BordeClaro) }
+            dragHandle = { BottomSheetDefaults.DragHandle(color = BordeClaro) },
+            shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp)
         ) {
-            FormProveedor(state.proveedorEnEdicion, state.guardando) { n, t, notas ->
+            FormProveedorLimpio(state.proveedorEnEdicion, state.guardando) { n, t, notas ->
                 viewModel.guardar(n, t, notas)
             }
         }
@@ -127,13 +126,15 @@ fun ProveedoresScreen(onVolver: () -> Unit) {
         AlertDialog(
             onDismissRequest = { aEliminar = null },
             containerColor = SuperficieClara,
-            shape = RoundedCornerShape(28.dp),
-            title = { Text("¿Eliminar proveedor?", color = SobreFondoClaro, fontWeight = FontWeight.Bold) },
-            text = { Text("¿Deseas eliminar a \"${prov.nombre}\"? Se perderá la asociación con sus productos.", color = SobreVariante) },
+            shape = RoundedCornerShape(24.dp),
+            title = { Text("¿Eliminar contacto?", fontWeight = FontWeight.Bold) },
+            text = { Text("¿Deseas quitar a \"${prov.nombre}\"? Esto no eliminará sus productos, pero quedarán sin proveedor asignado.") },
             confirmButton = {
-                TextButton(onClick = { viewModel.eliminar(prov); aEliminar = null }) {
-                    Text("Eliminar", color = RojoStock, fontWeight = FontWeight.Bold)
-                }
+                Button(
+                    onClick = { viewModel.eliminar(prov); aEliminar = null },
+                    colors = ButtonDefaults.buttonColors(containerColor = RojoStock),
+                    shape = RoundedCornerShape(12.dp)
+                ) { Text("Eliminar") }
             },
             dismissButton = {
                 TextButton(onClick = { aEliminar = null }) { Text("Cancelar", color = SobreFondoClaro) }
@@ -143,82 +144,54 @@ fun ProveedoresScreen(onVolver: () -> Unit) {
 }
 
 @Composable
-private fun ProveedorHeroCard(prov: Proveedor, onEditar: () -> Unit, onEliminar: () -> Unit) {
+private fun ProveedorCompactCard(prov: Proveedor, onEditar: () -> Unit, onEliminar: () -> Unit) {
     Surface(
         onClick = onEditar,
         color = SuperficieClara,
-        shape = RoundedCornerShape(32.dp),
-        shadowElevation = 2.dp,
-        modifier = Modifier.fillMaxWidth()
+        shape = RoundedCornerShape(20.dp),
+        shadowElevation = 0.5.dp,
+        border = androidx.compose.foundation.BorderStroke(1.dp, BordeClaro.copy(alpha = 0.5f))
     ) {
-        Column(Modifier.fillMaxWidth()) {
-            // "Hero" Header de la Card
-            Box(
-                Modifier
-                    .fillMaxWidth()
-                    .height(100.dp)
-                    .background(Brush.horizontalGradient(listOf(AzulPrimario, AzulPrimario.copy(alpha = 0.7f)))),
-                contentAlignment = Alignment.CenterStart
+        Row(
+            Modifier.padding(16.dp).fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Surface(
+                shape = CircleShape,
+                color = AzulFondo,
+                modifier = Modifier.size(48.dp)
             ) {
-                Row(Modifier.padding(horizontal = 24.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Surface(
-                        shape = CircleShape,
-                        color = Color.White.copy(alpha = 0.2f),
-                        modifier = Modifier.size(56.dp)
-                    ) {
-                        Box(contentAlignment = Alignment.Center) {
-                            Text(
-                                prov.nombre.take(1).uppercase(),
-                                fontSize = 24.sp, fontWeight = FontWeight.Black, color = Color.White
-                            )
-                        }
-                    }
-                    Spacer(Modifier.width(16.dp))
-                    Column {
-                        Text(prov.nombre, fontSize = 20.sp, fontWeight = FontWeight.ExtraBold, color = Color.White)
-                        Text("Proveedor Activo", fontSize = 12.sp, color = Color.White.copy(alpha = 0.8f))
-                    }
+                Box(contentAlignment = Alignment.Center) {
+                    Text(
+                        prov.nombre.take(1).uppercase(),
+                        fontSize = 18.sp, fontWeight = FontWeight.Black, color = AzulPrimario
+                    )
                 }
             }
             
-            // Cuerpo de la Card
-            Row(
-                Modifier
-                    .fillMaxWidth()
-                    .padding(24.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
+            Spacer(Modifier.width(16.dp))
+            
+            Column(Modifier.weight(1f)) {
+                Text(prov.nombre, style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold), color = SobreFondoClaro)
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Outlined.Phone, null, Modifier.size(12.dp), tint = SobreVariante)
+                    Spacer(Modifier.width(4.dp))
+                    Text(prov.telefono, style = MaterialTheme.typography.labelMedium, color = SobreVariante)
+                }
+            }
+            
+            IconButton(
+                onClick = onEliminar,
+                modifier = Modifier.size(36.dp).clip(CircleShape).background(RojoFondo.copy(alpha = 0.5f))
             ) {
-                Column {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Outlined.Phone, null, Modifier.size(16.dp), tint = AzulPrimario)
-                        Spacer(Modifier.width(8.dp))
-                        Text(prov.telefono, fontWeight = FontWeight.Bold, color = SobreFondoClaro)
-                    }
-                    if (!prov.notas.isNullOrBlank()) {
-                        Text(
-                            prov.notas!!, 
-                            style = MaterialTheme.typography.bodySmall, 
-                            color = SobreVariante,
-                            maxLines = 1,
-                            modifier = Modifier.padding(top = 4.dp)
-                        )
-                    }
-                }
-                
-                IconButton(
-                    onClick = onEliminar,
-                    modifier = Modifier.clip(CircleShape).background(RojoFondo)
-                ) {
-                    Icon(Icons.Filled.DeleteOutline, null, tint = RojoStock, modifier = Modifier.size(20.dp))
-                }
+                Icon(Icons.Filled.DeleteOutline, null, tint = RojoStock, modifier = Modifier.size(18.dp))
             }
         }
     }
 }
 
 @Composable
-private fun FormProveedor(inicial: Proveedor?, guardando: Boolean, onGuardar: (String, String, String?) -> Unit) {
+private fun FormProveedorLimpio(inicial: Proveedor?, guardando: Boolean, onGuardar: (String, String, String?) -> Unit) {
     var nombre by remember(inicial) { mutableStateOf(inicial?.nombre ?: "") }
     var telefono by remember(inicial) { mutableStateOf(inicial?.telefono ?: "") }
     var notas by remember(inicial) { mutableStateOf(inicial?.notas ?: "") }
@@ -227,50 +200,59 @@ private fun FormProveedor(inicial: Proveedor?, guardando: Boolean, onGuardar: (S
         Modifier
             .fillMaxWidth()
             .navigationBarsPadding()
-            .padding(24.dp),
+            .padding(horizontal = 24.dp, vertical = 8.dp)
+            .padding(bottom = 24.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         Text(
-            if (inicial == null) "Nuevo Proveedor" else "Editar Detalles",
+            if (inicial == null) "Registrar Proveedor" else "Actualizar Contacto",
             style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Black),
             color = SobreFondoClaro
         )
         
-        OutlinedTextField(
+        TextField(
             value = nombre,
             onValueChange = { nombre = it },
-            label = { Text("Nombre de la Empresa") },
+            label = { Text("Razón Social / Nombre", fontSize = 13.sp) },
             modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(16.dp),
-            colors = OutlinedTextFieldDefaults.colors(
-                focusedBorderColor = AzulPrimario,
-                unfocusedBorderColor = BordeClaro,
+            shape = RoundedCornerShape(12.dp),
+            colors = TextFieldDefaults.colors(
+                focusedContainerColor = FondoClaro,
+                unfocusedContainerColor = FondoClaro,
+                focusedIndicatorColor = Color.Transparent,
+                unfocusedIndicatorColor = Color.Transparent,
                 focusedLabelColor = AzulPrimario
             )
         )
 
-        OutlinedTextField(
+        TextField(
             value = telefono,
             onValueChange = { telefono = it },
-            label = { Text("Teléfono / Contacto") },
+            label = { Text("Teléfono de contacto", fontSize = 13.sp) },
             modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(16.dp),
-            colors = OutlinedTextFieldDefaults.colors(
-                focusedBorderColor = AzulPrimario,
-                unfocusedBorderColor = BordeClaro
+            shape = RoundedCornerShape(12.dp),
+            colors = TextFieldDefaults.colors(
+                focusedContainerColor = FondoClaro,
+                unfocusedContainerColor = FondoClaro,
+                focusedIndicatorColor = Color.Transparent,
+                unfocusedIndicatorColor = Color.Transparent,
+                focusedLabelColor = AzulPrimario
             )
         )
 
-        OutlinedTextField(
+        TextField(
             value = notas,
             onValueChange = { notas = it },
-            label = { Text("Notas o descripción") },
+            label = { Text("Observaciones adicionales", fontSize = 13.sp) },
             modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(16.dp),
+            shape = RoundedCornerShape(12.dp),
             minLines = 3,
-            colors = OutlinedTextFieldDefaults.colors(
-                focusedBorderColor = AzulPrimario,
-                unfocusedBorderColor = BordeClaro
+            colors = TextFieldDefaults.colors(
+                focusedContainerColor = FondoClaro,
+                unfocusedContainerColor = FondoClaro,
+                focusedIndicatorColor = Color.Transparent,
+                unfocusedIndicatorColor = Color.Transparent,
+                focusedLabelColor = AzulPrimario
             )
         )
         
@@ -284,7 +266,31 @@ private fun FormProveedor(inicial: Proveedor?, guardando: Boolean, onGuardar: (S
             colors = ButtonDefaults.buttonColors(containerColor = AzulPrimario)
         ) {
             if (guardando) CircularProgressIndicator(Modifier.size(24.dp), color = Color.White)
-            else Text("CONFIRMAR", fontWeight = FontWeight.Bold)
+            else Text("CONFIRMAR DATOS", fontWeight = FontWeight.ExtraBold, letterSpacing = 1.sp)
         }
+    }
+}
+
+@Composable
+private fun EstadoVacioProveedores() {
+    Column(
+        Modifier.fillMaxSize().padding(40.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Surface(
+            color = AzulFondo.copy(alpha = 0.5f),
+            shape = CircleShape,
+            modifier = Modifier.size(100.dp)
+        ) {
+            Box(contentAlignment = Alignment.Center) {
+                Icon(Icons.Outlined.Groups, null, Modifier.size(48.dp), tint = AzulPrimario.copy(alpha = 0.3f))
+            }
+        }
+        Spacer(Modifier.height(24.dp))
+        Text("Sin contactos", fontWeight = FontWeight.ExtraBold, fontSize = 22.sp, color = SobreFondoClaro)
+        Spacer(Modifier.height(8.dp))
+        Text("Empieza registrando a tus proveedores para vincularlos con tus productos.", 
+            textAlign = TextAlign.Center, fontSize = 14.sp, color = SobreVariante, lineHeight = 20.sp)
     }
 }

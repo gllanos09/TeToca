@@ -16,9 +16,13 @@ import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.launch
 
-/** Estado que la vista observa. Todo lo que la pantalla necesita pintar vive aquí. */
+enum class FiltroStock { TODOS, CRITICO, BAJO, OK }
+
 data class ProductosUiState(
     val productos: List<Producto> = emptyList(),
+    val productosFiltrados: List<Producto> = emptyList(),
+    val query: String = "",
+    val filtro: FiltroStock = FiltroStock.TODOS,
     val cargando: Boolean = true,
     val error: String? = null
 )
@@ -43,13 +47,46 @@ class ProductosViewModel(private val repo: ProductoRepository) : ViewModel() {
                     )
                 }
                 .collect { lista ->
-                    _uiState.value = ProductosUiState(productos = lista, cargando = false, error = null)
+                    _uiState.value = _uiState.value.copy(
+                        productos = lista,
+                        productosFiltrados = filtrar(lista, _uiState.value.query, _uiState.value.filtro),
+                        cargando = false
+                    )
                 }
         }
     }
 
+    fun onQueryChange(newQuery: String) {
+        _uiState.value = _uiState.value.copy(
+            query = newQuery,
+            productosFiltrados = filtrar(_uiState.value.productos, newQuery, _uiState.value.filtro)
+        )
+    }
+
+    fun onFiltroChange(nuevoFiltro: FiltroStock) {
+        _uiState.value = _uiState.value.copy(
+            filtro = nuevoFiltro,
+            productosFiltrados = filtrar(_uiState.value.productos, _uiState.value.query, nuevoFiltro)
+        )
+    }
+
+    private fun filtrar(lista: List<Producto>, query: String, filtro: FiltroStock): List<Producto> {
+        return lista.filter { p ->
+            val coincideTexto = p.nombre.contains(query, ignoreCase = true) || 
+                               p.categoria.contains(query, ignoreCase = true)
+            
+            val coincideFiltro = when (filtro) {
+                FiltroStock.TODOS -> true
+                FiltroStock.CRITICO -> p.stockActual <= p.stockMinimo
+                FiltroStock.BAJO -> p.stockActual > p.stockMinimo && p.stockActual <= p.stockMinimo * 2
+                FiltroStock.OK -> p.stockActual > p.stockMinimo * 2
+            }
+            
+            coincideTexto && coincideFiltro
+        }
+    }
+
     companion object {
-        /** Crea el ViewModel inyectando el Repository desde la base de datos. */
         fun Factory(context: Context): ViewModelProvider.Factory = viewModelFactory {
             initializer {
                 val dao = TeTocaDatabase.getInstance(context).productoDao()

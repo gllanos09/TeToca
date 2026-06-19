@@ -1,19 +1,19 @@
 package com.tetocaApp.tetoca.ui.productos
 
+import androidx.compose.animation.*
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.outlined.TrendingDown
-import androidx.compose.material.icons.automirrored.outlined.TrendingUp
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.outlined.FilterList
 import androidx.compose.material.icons.outlined.Groups
 import androidx.compose.material.icons.outlined.Inventory2
-import androidx.compose.material.icons.outlined.WarningAmber
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -30,6 +30,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.tetocaApp.tetoca.data.local.Producto
 import com.tetocaApp.tetoca.ui.theme.*
+import com.tetocaApp.tetoca.viewmodel.FiltroStock
 import com.tetocaApp.tetoca.viewmodel.ProductosViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -43,75 +44,126 @@ fun ListaProductosScreen(
     val viewModel: ProductosViewModel = viewModel(factory = ProductosViewModel.Factory(context))
     val state by viewModel.uiState.collectAsState()
 
-    val criticos = state.productos.count { it.stockActual <= it.stockMinimo }
-    val bajos = state.productos.count { it.stockActual > it.stockMinimo && it.stockActual <= it.stockMinimo * 2 }
-    val ok = state.productos.count { it.stockActual > it.stockMinimo * 2 }
+    val countCriticos = state.productos.count { it.stockActual <= it.stockMinimo }
+    val countBajos = state.productos.count { it.stockActual > it.stockMinimo && it.stockActual <= it.stockMinimo * 2 }
+    val countOk = state.productos.count { it.stockActual > it.stockMinimo * 2 }
 
     Scaffold(
         containerColor = FondoClaro,
         topBar = {
-            LargeTopAppBar(
-                title = {
-                    Text(
-                        "Mi Inventario",
-                        style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Black),
-                        color = SobreFondoClaro
-                    )
-                },
-                actions = {
+            Column(Modifier.background(FondoClaro).statusBarsPadding()) {
+                Row(
+                    Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Column {
+                        Text(
+                            "STOCK CONTROL",
+                            style = MaterialTheme.typography.labelSmall.copy(
+                                fontWeight = FontWeight.Black,
+                                letterSpacing = 1.5.sp,
+                                color = AzulPrimario
+                            )
+                        )
+                        Text(
+                            "Panel de Inventario",
+                            style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.ExtraBold),
+                            color = SobreFondoClaro
+                        )
+                    }
                     IconButton(
                         onClick = onProveedoresClick,
-                        modifier = Modifier.padding(end = 8.dp).size(48.dp).clip(CircleShape).background(AzulFondo)
+                        modifier = Modifier.size(48.dp).clip(RoundedCornerShape(14.dp)).background(AzulFondo)
                     ) {
-                        Icon(Icons.Outlined.Groups, null, tint = AzulPrimario)
+                        Icon(Icons.Outlined.Groups, "Proveedores", tint = AzulPrimario)
                     }
-                },
-                colors = TopAppBarDefaults.largeTopAppBarColors(
-                    containerColor = FondoClaro,
-                    titleContentColor = SobreFondoClaro
+                }
+                
+                // Barra de Búsqueda Integrada
+                OutlinedTextField(
+                    value = state.query,
+                    onValueChange = viewModel::onQueryChange,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 20.dp),
+                    placeholder = { Text("Buscar producto o categoría...", fontSize = 14.sp) },
+                    leadingIcon = { Icon(Icons.Default.Search, null, tint = AzulPrimario, modifier = Modifier.size(20.dp)) },
+                    trailingIcon = {
+                        if (state.filtro != FiltroStock.TODOS) {
+                            Icon(
+                                Icons.Outlined.FilterList, 
+                                null, 
+                                tint = AzulPrimario, 
+                                modifier = Modifier.clickable { viewModel.onFiltroChange(FiltroStock.TODOS) }
+                            )
+                        }
+                    },
+                    shape = RoundedCornerShape(16.dp),
+                    singleLine = true,
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedContainerColor = SuperficieClara,
+                        unfocusedContainerColor = SuperficieClara,
+                        focusedBorderColor = AzulPrimario,
+                        unfocusedBorderColor = BordeClaro,
+                        focusedPlaceholderColor = SobreVariante.copy(alpha = 0.5f)
+                    )
                 )
-            )
+
+                // Filtros Interactivos (Chips de Estado)
+                Row(
+                    Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 16.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    FiltroCard("Todos", state.productos.size, null, state.filtro == FiltroStock.TODOS, Modifier.weight(1f)) {
+                        viewModel.onFiltroChange(FiltroStock.TODOS)
+                    }
+                    FiltroCard("Crítico", countCriticos, RojoStock, state.filtro == FiltroStock.CRITICO, Modifier.weight(1f)) {
+                        viewModel.onFiltroChange(FiltroStock.CRITICO)
+                    }
+                    FiltroCard("Bajo", countBajos, AmbarStock, state.filtro == FiltroStock.BAJO, Modifier.weight(1f)) {
+                        viewModel.onFiltroChange(FiltroStock.BAJO)
+                    }
+                }
+            }
         },
         floatingActionButton = {
             FloatingActionButton(
                 onClick = onNuevoProducto,
                 containerColor = AzulPrimario,
                 contentColor = Color.White,
-                shape = RoundedCornerShape(20.dp)
+                shape = RoundedCornerShape(18.dp),
+                elevation = FloatingActionButtonDefaults.elevation(defaultElevation = 4.dp)
             ) {
-                Icon(Icons.Filled.Add, null, Modifier.size(28.dp))
+                Icon(Icons.Filled.Add, "Nuevo Producto", Modifier.size(30.dp))
             }
         }
     ) { padding ->
-        Column(Modifier.fillMaxSize().padding(padding)) {
-            // Dashboard de Estadísticas
-            Row(
-                Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 8.dp),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                StatCard("Críticos", criticos.toString(), RojoStock, RojoFondo, Icons.Outlined.WarningAmber, Modifier.weight(1f))
-                StatCard("Bajos", bajos.toString(), AmbarStock, AmbarFondo, Icons.AutoMirrored.Outlined.TrendingDown, Modifier.weight(1f))
-                StatCard("OK", ok.toString(), VerdeStock, VerdeFondo, Icons.AutoMirrored.Outlined.TrendingUp, Modifier.weight(1f))
-            }
-
-            when {
-                state.cargando -> Box(Modifier.fillMaxSize(), Alignment.Center) {
-                    CircularProgressIndicator(color = AzulPrimario)
-                }
-                state.productos.isEmpty() -> EstadoVacio(
-                    "Sin productos", "Tu inventario está listo para empezar.", Icons.Outlined.Inventory2
+        Box(Modifier.fillMaxSize().padding(padding)) {
+            if (state.cargando) {
+                CircularProgressIndicator(Modifier.align(Alignment.Center), color = AzulPrimario)
+            } else if (state.productosFiltrados.isEmpty()) {
+                EstadoVacio(
+                    if (state.query.isEmpty()) "Sin productos" else "Sin resultados",
+                    if (state.query.isEmpty()) "Agrega productos para gestionar tu stock." else "No encontramos coincidencias para \"${state.query}\"",
+                    Icons.Outlined.Inventory2
                 )
-                else -> {
-                    LazyVerticalGrid(
-                        columns = GridCells.Fixed(2),
-                        modifier = Modifier.fillMaxSize(),
-                        contentPadding = PaddingValues(20.dp),
-                        horizontalArrangement = Arrangement.spacedBy(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(16.dp)
-                    ) {
-                        items(state.productos, key = { it.id }) { p ->
-                            ProductoSquareCard(p) { onProductoClick(p.id) }
-                        }
+            } else {
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(bottom = 100.dp, start = 20.dp, end = 20.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    item {
+                        Text(
+                            "Mostrando ${state.productosFiltrados.size} resultados",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = SobreVariante,
+                            modifier = Modifier.padding(vertical = 8.dp)
+                        )
+                    }
+                    items(state.productosFiltrados, key = { it.id }) { p ->
+                        ProductoCompactRow(p) { onProductoClick(p.id) }
                     }
                 }
             }
@@ -120,64 +172,91 @@ fun ListaProductosScreen(
 }
 
 @Composable
-private fun StatCard(label: String, value: String, color: Color, fondo: Color, icon: ImageVector, modifier: Modifier) {
+private fun FiltroCard(
+    label: String, 
+    count: Int, 
+    color: Color?, 
+    seleccionado: Boolean, 
+    modifier: Modifier,
+    onClick: () -> Unit
+) {
+    val fondo = if (seleccionado) (color ?: AzulPrimario).copy(alpha = 0.15f) else SuperficieClara
+    val borde = if (seleccionado) (color ?: AzulPrimario) else BordeClaro
+    val contentColor = if (seleccionado) (color ?: AzulPrimario) else SobreVariante
+
     Surface(
-        modifier = modifier,
+        onClick = onClick,
+        modifier = modifier.height(52.dp),
         color = fondo,
-        shape = RoundedCornerShape(24.dp)
+        shape = RoundedCornerShape(14.dp),
+        border = androidx.compose.foundation.BorderStroke(1.5.dp, borde)
     ) {
-        Column(Modifier.padding(16.dp), horizontalAlignment = Alignment.Start) {
-            Icon(icon, null, tint = color, modifier = Modifier.size(20.dp))
-            Spacer(Modifier.height(8.dp))
-            Text(value, fontSize = 36.sp, fontWeight = FontWeight.Black, color = color, lineHeight = 36.sp)
-            Text(label, fontSize = 12.sp, fontWeight = FontWeight.Bold, color = color.copy(alpha = 0.7f))
+        Column(
+            Modifier.fillMaxSize(),
+            verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(label, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = contentColor)
+            Text(count.toString(), fontSize = 16.sp, fontWeight = FontWeight.Black, color = contentColor)
         }
     }
 }
 
 @Composable
-private fun ProductoSquareCard(p: Producto, onClick: () -> Unit) {
+private fun ProductoCompactRow(p: Producto, onClick: () -> Unit) {
     val (color, _) = nivelStock(p.stockActual, p.stockMinimo)
     
     Surface(
         onClick = onClick,
         color = SuperficieClara,
-        shape = RoundedCornerShape(32.dp),
-        shadowElevation = 2.dp,
-        modifier = Modifier.aspectRatio(1f)
+        shape = RoundedCornerShape(16.dp),
+        shadowElevation = 0.5.dp,
+        border = androidx.compose.foundation.BorderStroke(1.dp, BordeClaro.copy(alpha = 0.3f))
     ) {
-        Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.SpaceBetween) {
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.Top) {
-                Surface(
-                    color = color.copy(alpha = 0.1f),
-                    shape = RoundedCornerShape(12.dp)
-                ) {
-                    Text(
-                        "${p.stockActual}",
-                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
-                        fontWeight = FontWeight.Black,
-                        color = color,
-                        fontSize = 28.sp,
-                        lineHeight = 28.sp
-                    )
-                }
-                Icon(Icons.Outlined.Inventory2, null, tint = SobreVariante.copy(alpha = 0.3f), modifier = Modifier.size(20.dp))
-            }
+        Row(
+            Modifier.padding(12.dp).fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // Mini barra lateral de color
+            Box(Modifier.width(4.dp).height(32.dp).clip(CircleShape).background(color))
             
-            Column {
+            Spacer(Modifier.width(12.dp))
+            
+            Column(Modifier.weight(1f)) {
                 Text(
                     p.nombre,
-                    maxLines = 2,
+                    maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
-                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.ExtraBold, lineHeight = 20.sp),
+                    style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold),
                     color = SobreFondoClaro
                 )
                 Text(
-                    p.categoria,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = SobreVariante,
-                    maxLines = 1
+                    p.categoria.uppercase(),
+                    style = MaterialTheme.typography.labelSmall.copy(letterSpacing = 0.5.sp),
+                    color = SobreVariante
                 )
+            }
+            
+            Column(horizontalAlignment = Alignment.End) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        "${p.stockActual}",
+                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Black),
+                        color = color
+                    )
+                    Text(
+                        " UN",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = color.copy(alpha = 0.7f)
+                    )
+                }
+                p.precio?.let {
+                    Text(
+                        "S/ ${"%.2f".format(it)}",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = SobreVariante
+                    )
+                }
             }
         }
     }
@@ -190,15 +269,25 @@ private fun EstadoVacio(titulo: String, detalle: String, icono: ImageVector) {
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        Icon(icono, null, Modifier.size(80.dp), tint = AzulFondo)
+        Surface(
+            color = AzulFondo.copy(alpha = 0.5f),
+            shape = CircleShape,
+            modifier = Modifier.size(100.dp)
+        ) {
+            Box(contentAlignment = Alignment.Center) {
+                Icon(icono, null, Modifier.size(48.dp), tint = AzulPrimario.copy(alpha = 0.3f))
+            }
+        }
         Spacer(Modifier.height(24.dp))
-        Text(titulo, fontWeight = FontWeight.Bold, fontSize = 20.sp, color = SobreFondoClaro)
-        Text(detalle, textAlign = TextAlign.Center, color = SobreVariante)
+        Text(titulo, fontWeight = FontWeight.ExtraBold, fontSize = 22.sp, color = SobreFondoClaro)
+        Spacer(Modifier.height(8.dp))
+        Text(detalle, textAlign = TextAlign.Center, fontSize = 14.sp, color = SobreVariante, lineHeight = 20.sp)
     }
 }
 
 private fun nivelStock(actual: Int, minimo: Int): Pair<Color, String> = when {
-    actual <= minimo       -> RojoStock  to "Crítico"
-    actual <= minimo * 2   -> AmbarStock to "Bajo"
-    else                   -> VerdeStock to "OK"
+    actual <= 0          -> RojoStock  to "Agotado"
+    actual <= minimo     -> RojoStock  to "Crítico"
+    actual <= minimo * 2 -> AmbarStock to "Bajo"
+    else                 -> VerdeStock to "Óptimo"
 }

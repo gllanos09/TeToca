@@ -1,12 +1,7 @@
 package com.tetocaApp.tetoca.ui.productos
 
-import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.togetherWith
-import androidx.compose.foundation.background
+import androidx.compose.animation.*
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -14,12 +9,16 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.outlined.Label
 import androidx.compose.material.icons.outlined.CurrencyExchange
+import androidx.compose.material.icons.outlined.Inventory2
+import androidx.compose.material.icons.outlined.Payments
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -45,20 +44,23 @@ fun FormularioScreen(
     Scaffold(
         containerColor = FondoClaro,
         topBar = {
-            LargeTopAppBar(
+            CenterAlignedTopAppBar(
                 title = {
                     Text(
-                        if (state.editando) "Editar Producto" else "Nuevo Producto",
-                        style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Black),
-                        color = SobreFondoClaro
+                        if (state.editando) "EDITAR PRODUCTO" else "NUEVO PRODUCTO",
+                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Black, letterSpacing = 2.sp),
+                        color = SobreVariante
                     )
                 },
                 navigationIcon = {
                     IconButton(onClick = onCancelar) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, null, Modifier.size(28.dp), tint = AzulPrimario)
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, null, tint = AzulPrimario)
                     }
                 },
-                colors = TopAppBarDefaults.largeTopAppBarColors(containerColor = FondoClaro)
+                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
+                    containerColor = FondoClaro,
+                    titleContentColor = SobreVariante
+                )
             )
         },
         bottomBar = {
@@ -67,27 +69,18 @@ fun FormularioScreen(
                 color = FondoClaro,
                 shadowElevation = 8.dp
             ) {
-                Box(
-                    Modifier
-                        .navigationBarsPadding()
-                        .padding(24.dp)
-                ) {
+                Box(Modifier.navigationBarsPadding().padding(20.dp)) {
                     Button(
                         onClick = viewModel::guardar,
                         enabled = !state.guardando && state.proveedores.isNotEmpty(),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(56.dp),
+                        modifier = Modifier.fillMaxWidth().height(56.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = AzulPrimario),
                         shape = RoundedCornerShape(16.dp)
                     ) {
                         if (state.guardando) {
                             CircularProgressIndicator(Modifier.size(24.dp), strokeWidth = 3.dp, color = Color.White)
                         } else {
-                            Text(
-                                "CONFIRMAR",
-                                style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.ExtraBold)
-                            )
+                            Text("GUARDAR CAMBIOS", fontWeight = FontWeight.ExtraBold, letterSpacing = 1.sp)
                         }
                     }
                 }
@@ -99,84 +92,62 @@ fun FormularioScreen(
                 .fillMaxSize()
                 .padding(padding)
                 .verticalScroll(rememberScrollState())
-                .padding(24.dp),
+                .padding(20.dp),
             verticalArrangement = Arrangement.spacedBy(24.dp)
         ) {
-            SeccionFormulario("INFORMACIÓN GENERAL") {
+            SeccionLimpia("IDENTIFICACIÓN", Icons.AutoMirrored.Outlined.Label) {
                 CampoiOS(state.nombre, viewModel::onNombreChange, "Nombre del producto")
-                CampoiOS(state.categoria, viewModel::onCategoriaChange, "Categoría")
+                CampoiOS(state.categoria, viewModel::onCategoriaChange, "Categoría / Familia")
             }
             
-            SeccionFormulario("CONTROL DE STOCK") {
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                    CampoiOS(state.stockActual, viewModel::onStockActualChange, "Actual",
+            SeccionLimpia("CONTROL DE EXISTENCIAS", Icons.Outlined.Inventory2) {
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    CampoiOS(state.stockActual, viewModel::onStockActualChange, "Stock Actual",
                         KeyboardType.Number, Modifier.weight(1f))
-                    CampoiOS(state.stockMinimo, viewModel::onStockMinimoChange, "Mínimo",
+                    CampoiOS(state.stockMinimo, viewModel::onStockMinimoChange, "Stock Crítico",
                         KeyboardType.Number, Modifier.weight(1f))
                 }
             }
             
-            SeccionFormulario("PRECIO Y PROVEEDOR") {
-                CampoiOS(state.precio, viewModel::onPrecioChange, "Precio (PEN)", KeyboardType.Decimal)
-                SelectorProveedor(state.proveedores, state.proveedorId, viewModel::onProveedorSeleccionado)
+            SeccionLimpia("VALORIZACIÓN Y ORIGEN", Icons.Outlined.Payments) {
+                CampoiOS(state.precio, viewModel::onPrecioChange, "Precio Unitario (S/)", KeyboardType.Decimal)
+                Spacer(Modifier.height(8.dp))
+                SelectorProveedorLimpio(state.proveedores, state.proveedorId, viewModel::onProveedorSeleccionado)
             }
             
-            TasaCard(state.tasaCargando, state.tasa, state.tasaError, state.precio.toDoubleOrNull(), viewModel::cargarTipoCambio)
+            TasaCardLimpia(state.tasaCargando, state.tasa, state.tasaError, state.precio.toDoubleOrNull(), viewModel::cargarTipoCambio)
 
-            AnimatedVisibility(state.error != null) {
-                Surface(
-                    color = RojoFondo,
-                    shape = RoundedCornerShape(16.dp),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text(
-                        state.error ?: "", 
-                        color = RojoStock, 
-                        style = MaterialTheme.typography.bodyMedium,
-                        modifier = Modifier.padding(16.dp)
-                    )
+            if (state.error != null) {
+                Surface(color = RojoFondo, shape = RoundedCornerShape(12.dp), modifier = Modifier.fillMaxWidth()) {
+                    Text(state.error!!, color = RojoStock, modifier = Modifier.padding(12.dp), style = MaterialTheme.typography.bodySmall)
                 }
             }
             
             if (state.proveedores.isEmpty()) {
-                Surface(
-                    color = AmbarFondo,
-                    shape = RoundedCornerShape(16.dp),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text(
-                        "⚠ Crea un proveedor antes de registrar productos.",
-                        style = MaterialTheme.typography.bodyMedium, 
-                        color = AmbarStock,
-                        modifier = Modifier.padding(16.dp)
-                    )
+                Surface(color = AmbarFondo, shape = RoundedCornerShape(12.dp), modifier = Modifier.fillMaxWidth()) {
+                    Text("Debe registrar al menos un proveedor antes.", color = AmbarStock, modifier = Modifier.padding(12.dp), style = MaterialTheme.typography.bodySmall)
                 }
             }
             
-            Spacer(Modifier.height(32.dp))
+            Spacer(Modifier.height(40.dp))
         }
     }
 }
 
 @Composable
-private fun SeccionFormulario(titulo: String, content: @Composable ColumnScope.() -> Unit) {
-    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        Text(
-            titulo, 
-            style = MaterialTheme.typography.labelSmall.copy(letterSpacing = 1.sp, fontWeight = FontWeight.Bold), 
-            color = SobreVariante
-        )
+private fun SeccionLimpia(titulo: String, icono: ImageVector, content: @Composable ColumnScope.() -> Unit) {
+    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(start = 4.dp)) {
+            Icon(icono, null, Modifier.size(14.dp), tint = SobreVariante)
+            Spacer(Modifier.width(8.dp))
+            Text(titulo, style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, letterSpacing = 1.sp), color = SobreVariante)
+        }
         Surface(
             color = SuperficieClara,
-            shape = RoundedCornerShape(24.dp),
-            shadowElevation = 1.dp,
-            modifier = Modifier.fillMaxWidth()
+            shape = RoundedCornerShape(20.dp),
+            border = androidx.compose.foundation.BorderStroke(1.dp, BordeClaro.copy(alpha = 0.5f))
         ) {
-            Column(
-                modifier = Modifier.padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp),
-                content = content
-            )
+            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp), content = content)
         }
     }
 }
@@ -187,15 +158,18 @@ private fun CampoiOS(
     valor: String, onChange: (String) -> Unit, etiqueta: String,
     teclado: KeyboardType = KeyboardType.Text, modifier: Modifier = Modifier
 ) {
-    OutlinedTextField(
+    TextField(
         value = valor, onValueChange = onChange,
-        label = { Text(etiqueta) },
+        label = { Text(etiqueta, fontSize = 13.sp) },
         singleLine = true,
-        shape = RoundedCornerShape(16.dp),
+        shape = RoundedCornerShape(12.dp),
         keyboardOptions = KeyboardOptions(keyboardType = teclado),
-        colors = OutlinedTextFieldDefaults.colors(
-            focusedBorderColor = AzulPrimario,
-            unfocusedBorderColor = BordeClaro,
+        colors = TextFieldDefaults.colors(
+            focusedContainerColor = FondoClaro,
+            unfocusedContainerColor = FondoClaro,
+            focusedIndicatorColor = Color.Transparent,
+            unfocusedIndicatorColor = Color.Transparent,
+            cursorColor = AzulPrimario,
             focusedLabelColor = AzulPrimario
         ),
         modifier = modifier.fillMaxWidth()
@@ -204,75 +178,63 @@ private fun CampoiOS(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun SelectorProveedor(proveedores: List<Proveedor>, proveedorId: Long?, onSeleccion: (Long) -> Unit) {
+private fun SelectorProveedorLimpio(proveedores: List<Proveedor>, proveedorId: Long?, onSeleccion: (Long) -> Unit) {
     var expandido by remember { mutableStateOf(false) }
     val sel = proveedores.find { it.id == proveedorId }
-    ExposedDropdownMenuBox(
-        expanded = expandido,
-        onExpandedChange = { expandido = !expandido }
-    ) {
-        OutlinedTextField(
+    ExposedDropdownMenuBox(expanded = expandido, onExpandedChange = { expandido = !expandido }) {
+        TextField(
             value = sel?.nombre ?: "",
             onValueChange = {},
             readOnly = true,
-            label = { Text("Proveedor") },
+            label = { Text("Proveedor Responsable", fontSize = 13.sp) },
             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandido) },
-            shape = RoundedCornerShape(16.dp),
-            colors = OutlinedTextFieldDefaults.colors(
-                focusedBorderColor = AzulPrimario,
-                unfocusedBorderColor = BordeClaro,
-                focusedLabelColor = AzulPrimario
+            shape = RoundedCornerShape(12.dp),
+            colors = TextFieldDefaults.colors(
+                focusedContainerColor = FondoClaro,
+                unfocusedContainerColor = FondoClaro,
+                focusedIndicatorColor = Color.Transparent,
+                unfocusedIndicatorColor = Color.Transparent
             ),
-            modifier = Modifier
-                .menuAnchor(MenuAnchorType.PrimaryNotEditable)
-                .fillMaxWidth()
+            modifier = Modifier.menuAnchor(MenuAnchorType.PrimaryNotEditable).fillMaxWidth()
         )
-        ExposedDropdownMenu(
-            expanded = expandido,
-            onDismissRequest = { expandido = false },
-            containerColor = SuperficieClara
-        ) {
+        ExposedDropdownMenu(expanded = expandido, onDismissRequest = { expandido = false }, containerColor = SuperficieClara) {
             proveedores.forEach { prov ->
                 DropdownMenuItem(
-                    text = { Text(prov.nombre, color = SobreFondoClaro) },
-                    onClick = {
-                        onSeleccion(prov.id)
-                        expandido = false
-                    }
+                    text = { Text(prov.nombre, fontWeight = FontWeight.Medium) },
+                    onClick = { onSeleccion(prov.id); expandido = false }
                 )
             }
         }
     }
 }
 
-private enum class EstadoTasa { CARGANDO, OK, ERROR }
-
 @Composable
-private fun TasaCard(cargando: Boolean, tasa: Double?, error: String?, precioSoles: Double?, onReintentar: () -> Unit) {
-    val est = when { cargando -> EstadoTasa.CARGANDO; error != null -> EstadoTasa.ERROR; else -> EstadoTasa.OK }
+private fun TasaCardLimpia(cargando: Boolean, tasa: Double?, error: String?, precioSoles: Double?, onReintentar: () -> Unit) {
     Surface(
-        color = AzulFondo,
-        shape = RoundedCornerShape(24.dp),
+        color = AzulFondo.copy(alpha = 0.5f),
+        shape = RoundedCornerShape(16.dp),
         modifier = Modifier.fillMaxWidth()
     ) {
-        Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(Icons.Outlined.CurrencyExchange, null, Modifier.size(20.dp), tint = AzulPrimario)
-                Spacer(Modifier.width(8.dp))
-                Text("USD CONVERTER", style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Black), color = AzulPrimario)
-            }
-            AnimatedContent(est, transitionSpec = { fadeIn(tween(400)) togetherWith fadeOut(tween(400)) }, label = "tasa") { e ->
-                when (e) {
-                    EstadoTasa.CARGANDO -> CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp, color = AzulPrimario)
-                    EstadoTasa.ERROR -> TextButton(onClick = onReintentar) { Text("Reintentar conexión", color = RojoStock) }
-                    EstadoTasa.OK -> Column {
-                        Text("1 USD = S/ ${tasa?.let { "%.3f".format(it) } ?: "—"}",
-                            style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold), color = SobreFondoClaro)
-                        if (precioSoles != null && precioSoles > 0 && tasa != null) {
-                            Text("Aprox. US$ ${"%.2f".format(precioSoles / tasa)}", color = SobreVariante)
-                        }
-                    }
+        Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+            Icon(Icons.Outlined.CurrencyExchange, null, tint = AzulPrimario, modifier = Modifier.size(20.dp))
+            Spacer(Modifier.width(16.dp))
+            Column(Modifier.weight(1f)) {
+                if (cargando) {
+                    LinearProgressIndicator(Modifier.fillMaxWidth(), color = AzulPrimario, trackColor = Color.Transparent)
+                } else if (error != null) {
+                    Text("Error al conectar", style = MaterialTheme.typography.labelSmall, color = RojoStock)
+                    Text("Reintentar", Modifier.clickable { onReintentar() }, color = AzulPrimario, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                } else {
+                    Text("Equivalente en USD", style = MaterialTheme.typography.labelSmall, color = SobreVariante)
+                    Text("S/ 1.00 = $${"%.3f".format(1.0 / (tasa ?: 3.7))}", fontWeight = FontWeight.Bold, color = SobreFondoClaro)
                 }
+            }
+            if (!cargando && error == null && precioSoles != null && tasa != null) {
+                Text(
+                    "$ ${"%.2f".format(precioSoles / tasa)}",
+                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Black),
+                    color = AzulPrimario
+                )
             }
         }
     }
