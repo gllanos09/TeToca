@@ -12,6 +12,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.DeleteOutline
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.outlined.Groups
 import androidx.compose.material.icons.outlined.Phone
 import androidx.compose.material3.*
@@ -19,6 +20,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -47,21 +49,42 @@ fun ProveedoresScreen(onVolver: () -> Unit) {
         containerColor = FondoClaro,
         snackbarHost = { SnackbarHost(snackbar) },
         topBar = {
-            CenterAlignedTopAppBar(
-                title = {
-                    Text(
-                        "DIRECTORIO DE PROVEEDORES",
-                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Black, letterSpacing = 2.sp),
-                        color = SobreVariante
+            Column(Modifier.background(FondoClaro).statusBarsPadding()) {
+                CenterAlignedTopAppBar(
+                    title = {
+                        Text(
+                            "DIRECTORIO DE PROVEEDORES",
+                            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Black, letterSpacing = 2.sp),
+                            color = SobreVariante
+                        )
+                    },
+                    navigationIcon = {
+                        IconButton(onClick = onVolver) {
+                            Icon(Icons.AutoMirrored.Filled.ArrowBack, null, tint = AzulPrimario)
+                        }
+                    },
+                    colors = TopAppBarDefaults.centerAlignedTopAppBarColors(containerColor = FondoClaro)
+                )
+                
+                // Buscador de Proveedores
+                OutlinedTextField(
+                    value = state.query,
+                    onValueChange = viewModel::onQueryChange,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 20.dp, vertical = 8.dp),
+                    placeholder = { Text("Buscar por nombre o teléfono...", fontSize = 14.sp) },
+                    leadingIcon = { Icon(Icons.Default.Search, null, tint = AzulPrimario, modifier = Modifier.size(20.dp)) },
+                    shape = RoundedCornerShape(16.dp),
+                    singleLine = true,
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedContainerColor = SuperficieClara,
+                        unfocusedContainerColor = SuperficieClara,
+                        focusedBorderColor = AzulPrimario,
+                        unfocusedBorderColor = BordeClaro
                     )
-                },
-                navigationIcon = {
-                    IconButton(onClick = onVolver) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, null, tint = AzulPrimario)
-                    }
-                },
-                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(containerColor = FondoClaro)
-            )
+                )
+            }
         },
         floatingActionButton = {
             FloatingActionButton(
@@ -83,27 +106,27 @@ fun ProveedoresScreen(onVolver: () -> Unit) {
             when (est) {
                 0 -> Box(Modifier.fillMaxSize(), Alignment.Center) { CircularProgressIndicator(color = AzulPrimario) }
                 1 -> EstadoVacioProveedores()
-                else -> LazyColumn(
-                    Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(20.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    item {
-                        Text(
-                            "Gestione sus contactos de abastecimiento",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = SobreVariante,
-                            modifier = Modifier.padding(bottom = 8.dp)
-                        )
+                else -> {
+                    if (state.proveedoresFiltrados.isEmpty()) {
+                        Box(Modifier.fillMaxSize(), Alignment.Center) {
+                            Text("No se encontraron proveedores para \"${state.query}\"", color = SobreVariante)
+                        }
+                    } else {
+                        LazyColumn(
+                            Modifier.fillMaxSize(),
+                            contentPadding = PaddingValues(20.dp),
+                            verticalArrangement = Arrangement.spacedBy(20.dp)
+                        ) {
+                            items(state.proveedoresFiltrados, key = { it.id }) { prov ->
+                                ProveedorHeroCard(
+                                    prov = prov,
+                                    onEditar = { viewModel.onEditarProveedor(prov) },
+                                    onEliminar = { aEliminar = prov }
+                                )
+                            }
+                            item { Spacer(Modifier.height(80.dp)) }
+                        }
                     }
-                    items(state.proveedores, key = { it.id }) { prov ->
-                        ProveedorCompactCard(
-                            prov = prov,
-                            onEditar = { viewModel.onEditarProveedor(prov) },
-                            onEliminar = { aEliminar = prov }
-                        )
-                    }
-                    item { Spacer(Modifier.height(80.dp)) }
                 }
             }
         }
@@ -144,47 +167,81 @@ fun ProveedoresScreen(onVolver: () -> Unit) {
 }
 
 @Composable
-private fun ProveedorCompactCard(prov: Proveedor, onEditar: () -> Unit, onEliminar: () -> Unit) {
+private fun ProveedorHeroCard(prov: Proveedor, onEditar: () -> Unit, onEliminar: () -> Unit) {
     Surface(
         onClick = onEditar,
         color = SuperficieClara,
-        shape = RoundedCornerShape(20.dp),
-        shadowElevation = 0.5.dp,
+        shape = RoundedCornerShape(28.dp),
+        shadowElevation = 2.dp,
         border = androidx.compose.foundation.BorderStroke(1.dp, BordeClaro.copy(alpha = 0.5f))
     ) {
-        Row(
-            Modifier.padding(16.dp).fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Surface(
-                shape = CircleShape,
-                color = AzulFondo,
-                modifier = Modifier.size(48.dp)
+        Column(Modifier.fillMaxWidth()) {
+            // Cabecera Hero con Graduado o Color Sólido Aqua
+            Box(
+                Modifier
+                    .fillMaxWidth()
+                    .height(80.dp)
+                    .background(Brush.horizontalGradient(listOf(AzulPrimario, AzulPrimario.copy(alpha = 0.7f)))),
+                contentAlignment = Alignment.CenterStart
             ) {
-                Box(contentAlignment = Alignment.Center) {
+                Row(Modifier.padding(horizontal = 20.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Surface(
+                        shape = CircleShape,
+                        color = Color.White.copy(alpha = 0.2f),
+                        modifier = Modifier.size(44.dp)
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Text(
+                                prov.nombre.take(1).uppercase(),
+                                fontSize = 20.sp, fontWeight = FontWeight.Black, color = Color.White
+                            )
+                        }
+                    }
+                    Spacer(Modifier.width(16.dp))
                     Text(
-                        prov.nombre.take(1).uppercase(),
-                        fontSize = 18.sp, fontWeight = FontWeight.Black, color = AzulPrimario
+                        prov.nombre,
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = Color.White,
+                        maxLines = 1
                     )
                 }
             }
             
-            Spacer(Modifier.width(16.dp))
-            
-            Column(Modifier.weight(1f)) {
-                Text(prov.nombre, style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold), color = SobreFondoClaro)
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Outlined.Phone, null, Modifier.size(12.dp), tint = SobreVariante)
-                    Spacer(Modifier.width(4.dp))
-                    Text(prov.telefono, style = MaterialTheme.typography.labelMedium, color = SobreVariante)
-                }
-            }
-            
-            IconButton(
-                onClick = onEliminar,
-                modifier = Modifier.size(36.dp).clip(CircleShape).background(RojoFondo.copy(alpha = 0.5f))
+            // Cuerpo de la Card
+            Row(
+                Modifier
+                    .fillMaxWidth()
+                    .padding(20.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Icon(Icons.Filled.DeleteOutline, null, tint = RojoStock, modifier = Modifier.size(18.dp))
+                Column(Modifier.weight(1f)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Outlined.Phone, null, Modifier.size(16.dp), tint = AzulPrimario)
+                        Spacer(Modifier.width(8.dp))
+                        Text(prov.telefono, fontWeight = FontWeight.Bold, color = SobreFondoClaro)
+                    }
+                    if (!prov.notas.isNullOrBlank()) {
+                        Spacer(Modifier.height(4.dp))
+                        Text(
+                            prov.notas!!,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = SobreVariante,
+                            maxLines = 2
+                        )
+                    }
+                }
+                
+                IconButton(
+                    onClick = onEliminar,
+                    modifier = Modifier
+                        .size(40.dp)
+                        .clip(CircleShape)
+                        .background(RojoFondo)
+                ) {
+                    Icon(Icons.Filled.DeleteOutline, null, tint = RojoStock, modifier = Modifier.size(20.dp))
+                }
             }
         }
     }

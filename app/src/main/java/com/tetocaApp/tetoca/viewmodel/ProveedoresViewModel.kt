@@ -20,10 +20,10 @@ import android.database.sqlite.SQLiteConstraintException
 /** Estado que la vista observa. Todo lo que la pantalla necesita pintar vive aquí. */
 data class ProveedoresUiState(
     val proveedores: List<Proveedor> = emptyList(),
+    val proveedoresFiltrados: List<Proveedor> = emptyList(),
+    val query: String = "",
     val cargando: Boolean = true,
     val error: String? = null,
-    // Controla si el formulario (bottom sheet) está visible, y si está
-    // editando un proveedor existente o creando uno nuevo.
     val mostrarFormulario: Boolean = false,
     val proveedorEnEdicion: Proveedor? = null,
     val guardando: Boolean = false
@@ -51,6 +51,7 @@ class ProveedoresViewModel(private val repo: ProveedorRepository) : ViewModel() 
                 .collect { lista ->
                     _uiState.value = _uiState.value.copy(
                         proveedores = lista,
+                        proveedoresFiltrados = filtrar(lista, _uiState.value.query),
                         cargando = false,
                         error = null
                     )
@@ -58,12 +59,25 @@ class ProveedoresViewModel(private val repo: ProveedorRepository) : ViewModel() 
         }
     }
 
-    /** Abre el bottom sheet en modo "nuevo proveedor". */
+    fun onQueryChange(newQuery: String) {
+        _uiState.value = _uiState.value.copy(
+            query = newQuery,
+            proveedoresFiltrados = filtrar(_uiState.value.proveedores, newQuery)
+        )
+    }
+
+    private fun filtrar(lista: List<Proveedor>, query: String): List<Proveedor> {
+        if (query.isBlank()) return lista
+        return lista.filter { 
+            it.nombre.contains(query, ignoreCase = true) || 
+            it.telefono.contains(query, ignoreCase = true) 
+        }
+    }
+
     fun onNuevoProveedor() {
         _uiState.value = _uiState.value.copy(mostrarFormulario = true, proveedorEnEdicion = null)
     }
 
-    /** Abre el bottom sheet en modo "editar" con los datos ya cargados. */
     fun onEditarProveedor(proveedor: Proveedor) {
         _uiState.value = _uiState.value.copy(mostrarFormulario = true, proveedorEnEdicion = proveedor)
     }
@@ -105,19 +119,13 @@ class ProveedoresViewModel(private val repo: ProveedorRepository) : ViewModel() 
         }
     }
 
-    /**
-     * Intenta eliminar un proveedor. Si Room lo rechaza porque todavía
-     * tiene productos asociados (clave foránea con onDelete = RESTRICT),
-     * se captura SQLiteConstraintException y se muestra un mensaje claro,
-     * en vez de que la app se caiga.
-     */
     fun eliminar(proveedor: Proveedor) {
         viewModelScope.launch {
             try {
                 repo.eliminar(proveedor)
             } catch (e: SQLiteConstraintException) {
                 _uiState.value = _uiState.value.copy(
-                    error = "No se puede eliminar \"${proveedor.nombre}\": todavía tiene productos asociados. Reasigna o elimina esos productos primero."
+                    error = "No se puede eliminar \"${proveedor.nombre}\": todavía tiene productos asociados."
                 )
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(
@@ -132,7 +140,6 @@ class ProveedoresViewModel(private val repo: ProveedorRepository) : ViewModel() 
     }
 
     companion object {
-        /** Crea el ViewModel inyectando el Repository desde la base de datos. */
         fun Factory(context: Context): ViewModelProvider.Factory = viewModelFactory {
             initializer {
                 val dao = TeTocaDatabase.getInstance(context).proveedorDao()
