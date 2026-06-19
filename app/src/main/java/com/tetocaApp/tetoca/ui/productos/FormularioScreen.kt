@@ -198,7 +198,7 @@ private fun TasaCard(cargando: Boolean, tasa: Double?, error: String?, precioSol
         Row(verticalAlignment = Alignment.CenterVertically) {
             Icon(Icons.Outlined.CurrencyExchange, null, Modifier.size(20.dp), tint = VioletaClaro)
             Spacer(Modifier.width(8.dp))
-            Text("TIPO DE CAMBIO", style = MaterialTheme.typography.labelMedium, color = VioletaClaro, letterSpacing = 1. sp)
+            Text("TIPO DE CAMBIO", style = MaterialTheme.typography.labelMedium, color = VioletaClaro, letterSpacing = 1.sp)
         }
         AnimatedContent(est, transitionSpec = { fadeIn(tween(250)) togetherWith fadeOut(tween(200)) }, label = "tasa") { e ->
             when (e) {

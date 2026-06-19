@@ -69,8 +69,9 @@ fun ProveedoresScreen(onVolver: () -> Unit) {
         }
     ) { padding ->
         Crossfade(
-            when { state.cargando -> 0; state.proveedores.isEmpty() -> 1; else -> 2 },
-            tween(300), label = "prov",
+            targetState = when { state.cargando -> 0; state.proveedores.isEmpty() -> 1; else -> 2 },
+            animationSpec = tween(300),
+            label = "prov",
             modifier = Modifier.fillMaxSize().padding(padding)
         ) { est ->
             when (est) {
