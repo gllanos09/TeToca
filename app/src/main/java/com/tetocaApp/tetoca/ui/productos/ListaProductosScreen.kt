@@ -1,20 +1,12 @@
 package com.tetocaApp.tetoca.ui.productos
 
-import androidx.compose.animation.Crossfade
 import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -24,35 +16,20 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.outlined.Groups
 import androidx.compose.material.icons.outlined.Inventory2
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExtendedFloatingActionButton
-import androidx.compose.material3.FilledTonalIconButton
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.derivedStateOf
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.tetocaApp.tetoca.data.local.Producto
-import com.tetocaApp.tetoca.ui.theme.StockBajo
-import com.tetocaApp.tetoca.ui.theme.StockCritico
-import com.tetocaApp.tetoca.ui.theme.StockOk
+import com.tetocaApp.tetoca.ui.theme.*
 import com.tetocaApp.tetoca.viewmodel.ProductosViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -65,24 +42,23 @@ fun ListaProductosScreen(
     val context = LocalContext.current
     val viewModel: ProductosViewModel = viewModel(factory = ProductosViewModel.Factory(context))
     val state by viewModel.uiState.collectAsState()
-
     val listState = rememberLazyListState()
-    val fabExpandido by remember {
-        derivedStateOf { listState.firstVisibleItemIndex == 0 }
-    }
+    val fabExpandido by remember { derivedStateOf { listState.firstVisibleItemIndex == 0 } }
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             TopAppBar(
-                title = {
-                    Text("Mis productos", style = MaterialTheme.typography.headlineSmall)
-                },
+                title = {},
                 actions = {
-                    FilledTonalIconButton(onClick = onProveedoresClick) {
-                        Icon(Icons.Outlined.Groups, contentDescription = "Proveedores")
+                    IconButton(onClick = onProveedoresClick) {
+                        Icon(
+                            Icons.Outlined.Groups,
+                            contentDescription = "Proveedores",
+                            modifier = Modifier.size(28.dp),
+                            tint = MaterialTheme.colorScheme.onSurface
+                        )
                     }
-                    Spacer(Modifier.width(4.dp))
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.background
@@ -91,177 +67,155 @@ fun ListaProductosScreen(
         },
         floatingActionButton = {
             ExtendedFloatingActionButton(
-                text = { Text("Nuevo", style = MaterialTheme.typography.labelLarge) },
-                icon = { Icon(Icons.Filled.Add, contentDescription = null) },
+                text = { Text("AGREGAR", style = MaterialTheme.typography.labelLarge) },
+                icon = { Icon(Icons.Filled.Add, null, Modifier.size(22.dp)) },
                 onClick = onNuevoProducto,
-                expanded = fabExpandido
+                expanded = fabExpandido,
+                containerColor = Violeta,
+                contentColor = Color.White
             )
         }
     ) { padding ->
-        Crossfade(
-            targetState = estadoLista(state.cargando, state.error, state.productos.isEmpty()),
-            animationSpec = tween(350),
-            label = "estadoLista",
-            modifier = Modifier
+        Column(
+            Modifier
                 .fillMaxSize()
                 .padding(padding)
-        ) { estado ->
-            when (estado) {
-                EstadoLista.CARGANDO ->
-                    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        CircularProgressIndicator()
-                    }
-
-                EstadoLista.ERROR ->
-                    MensajeCentral(
-                        icono = Icons.Outlined.Inventory2,
-                        titulo = "Algo salió mal",
-                        detalle = state.error ?: "Inténtalo de nuevo."
-                    )
-
-                EstadoLista.VACIO ->
-                    MensajeCentral(
-                        icono = Icons.Outlined.Inventory2,
-                        titulo = "Aún no tienes productos",
-                        detalle = "Toca el botón Nuevo para registrar el primero."
-                    )
-
-                EstadoLista.CON_DATOS ->
-                    LazyColumn(
-                        state = listState,
-                        modifier = Modifier.fillMaxSize(),
-                        contentPadding = PaddingValues(16.dp, 8.dp, 16.dp, 96.dp),
-                        verticalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        items(state.productos, key = { it.id }) { producto ->
-                            ProductoCard(
-                                producto = producto,
-                                onClick = { onProductoClick(producto.id) },
-                                modifier = Modifier.animateItem()
-                            )
-                        }
-                    }
-            }
-        }
-    }
-}
-
-@Composable
-private fun ProductoCard(
-    producto: Producto,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    val (colorObjetivo, etiqueta) = nivelStock(producto.stockActual, producto.stockMinimo)
-    val color by animateColorAsState(colorObjetivo, tween(400), label = "stockColor")
-
-    Card(
-        onClick = onClick,
-        modifier = modifier.fillMaxWidth(),
-        shape = MaterialTheme.shapes.medium,
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically
+                .padding(horizontal = 20.dp)
         ) {
-            Box(
-                modifier = Modifier
-                    .size(46.dp)
-                    .clip(RoundedCornerShape(14.dp))
-                    .background(color.copy(alpha = 0.16f)),
-                contentAlignment = Alignment.Center
-            ) {
-                Box(
-                    Modifier
-                        .size(14.dp)
-                        .clip(CircleShape)
-                        .background(color)
-                )
-            }
-            Spacer(Modifier.width(14.dp))
-            Column(Modifier.weight(1f)) {
+            // Hero header
+            Spacer(Modifier.height(4.dp))
+            Text(
+                "Inventario",
+                style = MaterialTheme.typography.headlineLarge,
+                color = MaterialTheme.colorScheme.onBackground
+            )
+            if (!state.cargando && state.error == null) {
                 Text(
-                    producto.nombre,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-                Text(
-                    producto.categoria,
+                    "${state.productos.size} productos registrados",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
-            Column(horizontalAlignment = Alignment.End) {
-                Text(
-                    "${producto.stockActual}",
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface
+            Spacer(Modifier.height(20.dp))
+
+            when {
+                state.cargando -> Box(Modifier.fillMaxSize(), Alignment.Center) {
+                    CircularProgressIndicator(color = Violeta)
+                }
+                state.error != null -> EstadoVacio(
+                    "Error al cargar", state.error!!, Icons.Outlined.Inventory2
                 )
-                Text(etiqueta, style = MaterialTheme.typography.labelMedium, color = color)
+                state.productos.isEmpty() -> EstadoVacio(
+                    "Sin productos aún",
+                    "Toca AGREGAR para registrar tu primer producto.",
+                    Icons.Outlined.Inventory2
+                )
+                else -> LazyColumn(
+                    state = listState,
+                    verticalArrangement = Arrangement.spacedBy(10.dp),
+                    contentPadding = PaddingValues(bottom = 100.dp)
+                ) {
+                    items(state.productos, key = { it.id }) { p ->
+                        ProductoCard(p, { onProductoClick(p.id) }, Modifier.animateItem())
+                    }
+                }
             }
         }
     }
 }
 
 @Composable
-private fun MensajeCentral(
-    icono: androidx.compose.ui.graphics.vector.ImageVector,
-    titulo: String,
-    detalle: String
-) {
-    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-            modifier = Modifier.padding(32.dp)
+private fun ProductoCard(p: Producto, onClick: () -> Unit, modifier: Modifier = Modifier) {
+    val (color, etiqueta) = nivelStock(p.stockActual, p.stockMinimo)
+    val accentColor by animateColorAsState(color, spring(Spring.DampingRatioMediumBouncy), label = "")
+
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(16.dp))
+            .background(Superficie)
+            .clickable(onClick = onClick)
+    ) {
+        // borde izquierdo de color
+        Box(
+            Modifier
+                .fillMaxHeight()
+                .width(4.dp)
+                .background(accentColor)
+                .align(Alignment.CenterStart)
+        )
+        Row(
+            Modifier
+                .fillMaxWidth()
+                .padding(start = 16.dp, top = 16.dp, bottom = 16.dp, end = 16.dp),
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Box(
-                modifier = Modifier
-                    .size(76.dp)
-                    .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.surfaceVariant),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    icono,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.size(38.dp)
+            Column(Modifier.weight(1f)) {
+                Text(
+                    p.nombre,
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    fontWeight = FontWeight.Bold
+                )
+                Text(
+                    p.categoria.uppercase(),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    letterSpacing = 1.sp
                 )
             }
-            Text(
-                titulo,
-                style = MaterialTheme.typography.titleLarge,
-                color = MaterialTheme.colorScheme.onBackground
-            )
-            Text(
-                detalle,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.fillMaxWidth(),
-                textAlign = androidx.compose.ui.text.style.TextAlign.Center
-            )
+            Spacer(Modifier.width(12.dp))
+            Column(horizontalAlignment = Alignment.End) {
+                Text(
+                    "${p.stockActual}",
+                    fontSize = 36.sp,
+                    fontWeight = FontWeight.Black,
+                    color = accentColor,
+                    lineHeight = 38.sp
+                )
+                Box(
+                    Modifier
+                        .background(accentColor.copy(alpha = 0.15f), RoundedCornerShape(50))
+                        .padding(horizontal = 8.dp, vertical = 2.dp)
+                ) {
+                    Text(
+                        etiqueta.uppercase(),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = accentColor,
+                        letterSpacing = 0.8.sp
+                    )
+                }
+            }
         }
     }
 }
 
-private enum class EstadoLista { CARGANDO, ERROR, VACIO, CON_DATOS }
-
-private fun estadoLista(cargando: Boolean, error: String?, vacio: Boolean): EstadoLista = when {
-    cargando -> EstadoLista.CARGANDO
-    error != null -> EstadoLista.ERROR
-    vacio -> EstadoLista.VACIO
-    else -> EstadoLista.CON_DATOS
+@Composable
+private fun EstadoVacio(
+    titulo: String, detalle: String,
+    icono: androidx.compose.ui.graphics.vector.ImageVector
+) {
+    Box(Modifier.fillMaxSize(), Alignment.Center) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.padding(32.dp)) {
+            Box(
+                Modifier
+                    .size(88.dp)
+                    .clip(CircleShape)
+                    .background(SuperficieAlt),
+                Alignment.Center
+            ) {
+                Icon(icono, null, Modifier.size(44.dp), tint = SobreVariante)
+            }
+            Spacer(Modifier.height(16.dp))
+            Text(titulo, style = MaterialTheme.typography.headlineSmall, color = MaterialTheme.colorScheme.onBackground)
+            Spacer(Modifier.height(6.dp))
+            Text(detalle, style = MaterialTheme.typography.bodyMedium, color = SobreVariante, textAlign = TextAlign.Center)
+        }
+    }
 }
 
 private fun nivelStock(actual: Int, minimo: Int): Pair<Color, String> = when {
-    actual <= minimo -> StockCritico to "Crítico"
-    actual <= minimo * 2 -> StockBajo to "Bajo"
-    else -> StockOk to "Disponible"
+    actual <= minimo       -> RojoStock  to "Crítico"
+    actual <= minimo * 2   -> AmbarStock to "Bajo"
+    else                   -> VerdeStock to "OK"
 }

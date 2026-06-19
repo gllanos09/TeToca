@@ -1,63 +1,30 @@
 package com.tetocaApp.tetoca.ui.productos
 
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.DeleteOutline
 import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.outlined.Category
-import androidx.compose.material.icons.outlined.Groups
-import androidx.compose.material.icons.outlined.Inventory2
-import androidx.compose.material.icons.outlined.Sell
-import androidx.compose.material.icons.outlined.Warning
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.material.icons.outlined.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.tetocaApp.tetoca.data.local.Producto
-import com.tetocaApp.tetoca.ui.theme.StockBajo
-import com.tetocaApp.tetoca.ui.theme.StockCritico
-import com.tetocaApp.tetoca.ui.theme.StockOk
+import com.tetocaApp.tetoca.ui.theme.*
 import com.tetocaApp.tetoca.viewmodel.DetalleViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -72,75 +39,135 @@ fun DetalleScreen(
     val viewModel: DetalleViewModel = viewModel(factory = DetalleViewModel.Factory(context, productoId))
     val state by viewModel.uiState.collectAsState()
     var confirmar by remember { mutableStateOf(false) }
+    var visible by remember { mutableStateOf(false) }
+    LaunchedEffect(state.producto) { if (state.producto != null) visible = true }
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             TopAppBar(
-                title = { Text("Detalle", style = MaterialTheme.typography.titleLarge) },
+                title = {},
                 navigationIcon = {
                     IconButton(onClick = onVolver) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Volver")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, null, Modifier.size(26.dp))
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.background
-                )
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background)
             )
         },
         bottomBar = {
             if (state.producto != null) {
-                Surface(tonalElevation = 3.dp, color = MaterialTheme.colorScheme.surface) {
+                Surface(color = MaterialTheme.colorScheme.background) {
                     Row(
-                        modifier = Modifier
+                        Modifier
                             .fillMaxWidth()
-                            .padding(16.dp),
+                            .navigationBarsPadding()
+                            .padding(horizontal = 20.dp, vertical = 12.dp),
                         horizontalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
                         OutlinedButton(
                             onClick = { confirmar = true },
-                            modifier = Modifier.weight(1f)
+                            modifier = Modifier.weight(1f).height(54.dp),
+                            border = ButtonDefaults.outlinedButtonBorder(enabled = true).copy(
+                                brush = androidx.compose.ui.graphics.SolidColor(Error)
+                            )
                         ) {
-                            Icon(Icons.Filled.DeleteOutline, contentDescription = null)
+                            Icon(Icons.Filled.DeleteOutline, null, tint = Error)
                             Spacer(Modifier.width(8.dp))
-                            Text("Eliminar")
+                            Text("Eliminar", color = Error, fontWeight = FontWeight.SemiBold)
                         }
                         Button(
                             onClick = { onEditar(productoId) },
-                            modifier = Modifier.weight(1f)
+                            modifier = Modifier.weight(1f).height(54.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = Violeta)
                         ) {
-                            Icon(Icons.Filled.Edit, contentDescription = null)
+                            Icon(Icons.Filled.Edit, null)
                             Spacer(Modifier.width(8.dp))
-                            Text("Editar")
+                            Text("Editar", fontWeight = FontWeight.SemiBold)
                         }
                     }
                 }
             }
         }
     ) { padding ->
-        Crossfade(
-            targetState = state.cargando to (state.producto != null),
-            animationSpec = tween(300),
-            label = "detalle",
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
-        ) { (cargando, hayProducto) ->
-            when {
-                cargando -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator()
+        when {
+            state.cargando -> Box(Modifier.fillMaxSize(), Alignment.Center) {
+                CircularProgressIndicator(color = Violeta)
+            }
+            state.producto == null -> Box(Modifier.fillMaxSize(), Alignment.Center) {
+                Text(state.error ?: "Producto no encontrado", color = Error)
+            }
+            else -> {
+                val p = state.producto!!
+                val (color, etiqueta) = nivelStock(p.stockActual, p.stockMinimo)
+
+                AnimatedVisibility(
+                    visible = visible,
+                    enter = fadeIn(tween(350)) + slideInVertically(tween(350)) { it / 6 }
+                ) {
+                    Column(
+                        Modifier
+                            .fillMaxSize()
+                            .padding(padding)
+                            .padding(horizontal = 20.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        // Hero: número grande
+                        Box(
+                            Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(20.dp))
+                                .background(color.copy(alpha = 0.1f))
+                                .padding(24.dp)
+                        ) {
+                            Column {
+                                Text(
+                                    p.nombre,
+                                    style = MaterialTheme.typography.headlineMedium,
+                                    fontWeight = FontWeight.ExtraBold,
+                                    color = MaterialTheme.colorScheme.onBackground
+                                )
+                                Spacer(Modifier.height(12.dp))
+                                Row(verticalAlignment = Alignment.Bottom) {
+                                    Text(
+                                        "${p.stockActual}",
+                                        fontSize = 72.sp,
+                                        fontWeight = FontWeight.Black,
+                                        color = color,
+                                        lineHeight = 72.sp
+                                    )
+                                    Spacer(Modifier.width(10.dp))
+                                    Column(modifier = Modifier.padding(bottom = 8.dp)) {
+                                        Box(
+                                            Modifier
+                                                .background(color.copy(0.18f), RoundedCornerShape(50))
+                                                .padding(horizontal = 10.dp, vertical = 4.dp)
+                                        ) {
+                                            Text(
+                                                etiqueta.uppercase(),
+                                                style = MaterialTheme.typography.labelMedium,
+                                                color = color,
+                                                letterSpacing = 1.sp
+                                            )
+                                        }
+                                        Spacer(Modifier.height(4.dp))
+                                        Text(
+                                            "mín. ${p.stockMinimo}",
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = SobreVariante
+                                        )
+                                    }
+                                }
+                            }
+                        }
+
+                        // Filas de detalle
+                        FilaDetalle(Icons.Outlined.Category, "CATEGORÍA", p.categoria)
+                        FilaDetalle(Icons.Outlined.Sell, "PRECIO",
+                            p.precio?.let { "S/ ${"%.2f".format(it)}" } ?: "Sin precio")
+                        FilaDetalle(Icons.Outlined.Groups, "PROVEEDOR", state.proveedorNombre ?: "—")
+                    }
                 }
-                !hayProducto -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text(
-                        state.error ?: "No se encontró el producto",
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.error
-                    )
-                }
-                else -> Contenido(
-                    producto = state.producto!!,
-                    proveedorNombre = state.proveedorNombre
-                )
             }
         }
     }
@@ -148,123 +175,50 @@ fun DetalleScreen(
     if (confirmar) {
         AlertDialog(
             onDismissRequest = { confirmar = false },
-            icon = { Icon(Icons.Outlined.Warning, contentDescription = null) },
-            title = { Text("Eliminar producto") },
-            text = { Text("Esta acción no se puede deshacer. ¿Eliminar este producto?") },
+            containerColor = Superficie,
+            title = { Text("¿Eliminar producto?", color = SobreFondo) },
+            text = { Text("Esta acción no se puede deshacer.", color = SobreVariante) },
             confirmButton = {
-                TextButton(onClick = {
-                    confirmar = false
-                    viewModel.eliminar { onEliminado() }
-                }) { Text("Eliminar") }
+                TextButton(onClick = { confirmar = false; viewModel.eliminar { onEliminado() } }) {
+                    Text("Eliminar", color = Error, fontWeight = FontWeight.Bold)
+                }
             },
             dismissButton = {
-                TextButton(onClick = { confirmar = false }) { Text("Cancelar") }
+                TextButton(onClick = { confirmar = false }) { Text("Cancelar", color = SobreVariante) }
             }
         )
     }
 }
 
 @Composable
-private fun Contenido(producto: Producto, proveedorNombre: String?) {
-    var visible by remember { mutableStateOf(false) }
-    androidx.compose.runtime.LaunchedEffect(Unit) { visible = true }
-
-    val (color, etiqueta) = nivelStock(producto.stockActual, producto.stockMinimo)
-
-    AnimatedVisibility(
-        visible = visible,
-        enter = fadeIn(tween(400)) + slideInVertically(tween(400)) { it / 8 }
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp)
-        ) {
-            // Cabecera
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(color.copy(alpha = 0.12f), RoundedCornerShape(20.dp))
-                    .padding(20.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
-                Text(
-                    producto.nombre,
-                    style = MaterialTheme.typography.headlineMedium,
-                    fontWeight = FontWeight.ExtraBold,
-                    color = MaterialTheme.colorScheme.onBackground
-                )
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Box(
-                        Modifier
-                            .background(color, RoundedCornerShape(50))
-                            .padding(horizontal = 12.dp, vertical = 6.dp)
-                    ) {
-                        Text(
-                            etiqueta,
-                            style = MaterialTheme.typography.labelLarge,
-                            color = Color.White
-                        )
-                    }
-                    Spacer(Modifier.width(12.dp))
-                    Text(
-                        "${producto.stockActual} en stock",
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            }
-
-            // Datos
-            FilaInfo(Icons.Outlined.Category, "Categoría", producto.categoria)
-            FilaInfo(Icons.Outlined.Inventory2, "Stock mínimo", "${producto.stockMinimo} unidades")
-            FilaInfo(
-                Icons.Outlined.Sell,
-                "Precio",
-                producto.precio?.let { "S/ " + "%.2f".format(it) } ?: "Sin precio"
-            )
-            FilaInfo(Icons.Outlined.Groups, "Proveedor", proveedorNombre ?: "—")
-        }
-    }
-}
-
-@Composable
-private fun FilaInfo(icono: ImageVector, etiqueta: String, valor: String) {
+private fun FilaDetalle(icono: ImageVector, etiqueta: String, valor: String) {
     Row(
-        modifier = Modifier
+        Modifier
             .fillMaxWidth()
-            .background(MaterialTheme.colorScheme.surface, RoundedCornerShape(16.dp))
+            .clip(RoundedCornerShape(14.dp))
+            .background(Superficie)
             .padding(16.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Box(
-            modifier = Modifier
-                .size(40.dp)
-                .background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(12.dp)),
-            contentAlignment = Alignment.Center
+            Modifier
+                .size(42.dp)
+                .clip(RoundedCornerShape(12.dp))
+                .background(VioletaFondo),
+            Alignment.Center
         ) {
-            Icon(icono, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+            Icon(icono, null, Modifier.size(22.dp), tint = VioletaClaro)
         }
         Spacer(Modifier.width(14.dp))
         Column {
-            Text(
-                etiqueta,
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            Text(
-                valor,
-                style = MaterialTheme.typography.bodyLarge,
-                fontWeight = FontWeight.SemiBold,
-                color = MaterialTheme.colorScheme.onSurface
-            )
+            Text(etiqueta, style = MaterialTheme.typography.labelSmall, color = SobreVariante, letterSpacing = 1.sp)
+            Text(valor, style = MaterialTheme.typography.bodyLarge, color = SobreFondo, fontWeight = FontWeight.SemiBold)
         }
     }
 }
 
 private fun nivelStock(actual: Int, minimo: Int): Pair<Color, String> = when {
-    actual <= minimo -> StockCritico to "Crítico"
-    actual <= minimo * 2 -> StockBajo to "Bajo"
-    else -> StockOk to "Disponible"
+    actual <= minimo     -> RojoStock  to "Crítico"
+    actual <= minimo * 2 -> AmbarStock to "Bajo"
+    else                 -> VerdeStock to "Disponible"
 }
