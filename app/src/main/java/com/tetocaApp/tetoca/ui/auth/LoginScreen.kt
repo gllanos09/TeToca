@@ -1,47 +1,29 @@
 package com.tetocaApp.tetoca.ui.auth
 
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarHost
-import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.tetocaApp.tetoca.ui.theme.*
 import com.tetocaApp.tetoca.viewmodel.AuthViewModel
 
 @Composable
@@ -57,7 +39,14 @@ fun LoginScreen(
     var password by remember { mutableStateOf("") }
     var verPassword by remember { mutableStateOf(false) }
 
-    // Navegar cuando el login fue exitoso
+    var visible by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) { visible = true }
+    val enterProgress by animateFloatAsState(
+        targetValue = if (visible) 1f else 0f,
+        animationSpec = tween(500, easing = FastOutSlowInEasing),
+        label = "enter"
+    )
+
     LaunchedEffect(state.exitoso) {
         if (state.exitoso) {
             viewModel.limpiarExitoso()
@@ -65,7 +54,6 @@ fun LoginScreen(
         }
     }
 
-    // Mostrar errores en Snackbar
     LaunchedEffect(state.error) {
         state.error?.let {
             snackbar.showSnackbar(it)
@@ -73,7 +61,10 @@ fun LoginScreen(
         }
     }
 
-    Scaffold(snackbarHost = { SnackbarHost(snackbar) }) { padding ->
+    Scaffold(
+        containerColor = FondoClaro,
+        snackbarHost = { SnackbarHost(snackbar) }
+    ) { padding ->
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -82,46 +73,58 @@ fun LoginScreen(
             contentAlignment = Alignment.Center
         ) {
             Column(
+                modifier = Modifier.graphicsLayer {
+                    alpha = enterProgress
+                    translationY = (1f - enterProgress) * 60f
+                },
                 verticalArrangement = Arrangement.spacedBy(16.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                // Encabezado
                 Text(
                     text = "TeToca",
-                    style = MaterialTheme.typography.displaySmall,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.primary
+                    style = MaterialTheme.typography.displaySmall.copy(
+                        fontWeight = FontWeight.Black
+                    ),
+                    color = AzulPrimario
                 )
                 Text(
                     text = "Inventario inteligente",
                     style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = SobreVariante
                 )
 
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(24.dp))
 
-                // Campo email
                 OutlinedTextField(
                     value = email,
                     onValueChange = { email = it },
                     label = { Text("Correo electrónico") },
-                    leadingIcon = { Icon(Icons.Filled.Email, contentDescription = null) },
+                    leadingIcon = { Icon(Icons.Filled.Email, contentDescription = "Correo electrónico") },
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = AzulPrimario,
+                        unfocusedBorderColor = BordeClaro,
+                        focusedContainerColor = SuperficieClara,
+                        unfocusedContainerColor = SuperficieClara,
+                        cursorColor = AzulPrimario,
+                        focusedLabelColor = AzulPrimario,
+                        focusedLeadingIconColor = AzulPrimario
+                    ),
                     modifier = Modifier.fillMaxWidth()
                 )
 
-                // Campo password
                 OutlinedTextField(
                     value = password,
                     onValueChange = { password = it },
                     label = { Text("Contraseña") },
-                    leadingIcon = { Icon(Icons.Filled.Lock, contentDescription = null) },
+                    leadingIcon = { Icon(Icons.Filled.Lock, contentDescription = "Contraseña") },
                     trailingIcon = {
                         IconButton(onClick = { verPassword = !verPassword }) {
                             Icon(
                                 if (verPassword) Icons.Filled.VisibilityOff else Icons.Filled.Visibility,
-                                contentDescription = if (verPassword) "Ocultar" else "Mostrar"
+                                contentDescription = if (verPassword) "Ocultar contraseña" else "Mostrar contraseña"
                             )
                         }
                     },
@@ -129,32 +132,51 @@ fun LoginScreen(
                     else PasswordVisualTransformation(),
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = AzulPrimario,
+                        unfocusedBorderColor = BordeClaro,
+                        focusedContainerColor = SuperficieClara,
+                        unfocusedContainerColor = SuperficieClara,
+                        cursorColor = AzulPrimario,
+                        focusedLabelColor = AzulPrimario,
+                        focusedLeadingIconColor = AzulPrimario
+                    ),
                     modifier = Modifier.fillMaxWidth()
                 )
 
-                // Botón iniciar sesión
+                Spacer(modifier = Modifier.height(8.dp))
+
                 Button(
                     onClick = { viewModel.login(email, password) },
                     enabled = !state.cargando,
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.primary
-                    ),
-                    modifier = Modifier.fillMaxWidth().height(52.dp)
+                    colors = ButtonDefaults.buttonColors(containerColor = AzulPrimario),
+                    shape = RoundedCornerShape(16.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(52.dp)
                 ) {
                     if (state.cargando) {
                         CircularProgressIndicator(
                             modifier = Modifier.size(20.dp),
-                            color = MaterialTheme.colorScheme.onPrimary,
+                            color = SobreAzul,
                             strokeWidth = 2.dp
                         )
                     } else {
-                        Text("Iniciar sesión", fontWeight = FontWeight.SemiBold)
+                        Text(
+                            "Iniciar sesión",
+                            fontWeight = FontWeight.SemiBold,
+                            fontSize = 16.sp
+                        )
                     }
                 }
 
-                // Ir a registro
                 TextButton(onClick = onIrARegistro) {
-                    Text("¿No tienes cuenta? Regístrate")
+                    Text(
+                        "¿No tienes cuenta? Regístrate",
+                        color = AzulPrimario,
+                        fontWeight = FontWeight.Medium
+                    )
                 }
             }
         }

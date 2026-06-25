@@ -1,11 +1,17 @@
 package com.tetocaApp.tetoca.ui.proveedores
 
 import androidx.compose.animation.Crossfade
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -20,9 +26,11 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -41,6 +49,9 @@ fun ProveedoresScreen(onVolver: () -> Unit) {
     val snackbar = remember { SnackbarHostState() }
     var aEliminar by remember { mutableStateOf<Proveedor?>(null) }
 
+    val density = LocalDensity.current
+    val staggerOffsetPx = remember(density) { with(density) { 24.dp.toPx() } }
+
     LaunchedEffect(state.error) {
         state.error?.let { snackbar.showSnackbar(it); viewModel.limpiarError() }
     }
@@ -50,31 +61,35 @@ fun ProveedoresScreen(onVolver: () -> Unit) {
         snackbarHost = { SnackbarHost(snackbar) },
         topBar = {
             Column(Modifier.background(FondoClaro).statusBarsPadding()) {
-                CenterAlignedTopAppBar(
-                    title = {
-                        Text(
-                            "DIRECTORIO DE PROVEEDORES",
-                            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Black, letterSpacing = 2.sp),
-                            color = SobreVariante
-                        )
-                    },
+                TopAppBar(
+                    title = { Text("Proveedores", fontWeight = FontWeight.Bold) },
                     navigationIcon = {
                         IconButton(onClick = onVolver) {
-                            Icon(Icons.AutoMirrored.Filled.ArrowBack, null, tint = AzulPrimario)
+                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Volver atrás")
                         }
                     },
-                    colors = TopAppBarDefaults.centerAlignedTopAppBarColors(containerColor = FondoClaro)
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = AzulPrimario,
+                        titleContentColor = SobreAzul,
+                        navigationIconContentColor = SobreAzul
+                    )
                 )
-                
-                // Buscador de Proveedores
+
                 OutlinedTextField(
                     value = state.query,
                     onValueChange = viewModel::onQueryChange,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 20.dp, vertical = 8.dp),
+                        .padding(horizontal = 20.dp, vertical = 12.dp),
                     placeholder = { Text("Buscar por nombre o teléfono...", fontSize = 14.sp) },
-                    leadingIcon = { Icon(Icons.Default.Search, null, tint = AzulPrimario, modifier = Modifier.size(20.dp)) },
+                    leadingIcon = {
+                        Icon(
+                            Icons.Default.Search,
+                            contentDescription = "Buscar proveedor",
+                            tint = AzulPrimario,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    },
                     shape = RoundedCornerShape(16.dp),
                     singleLine = true,
                     colors = OutlinedTextFieldDefaults.colors(
@@ -93,33 +108,65 @@ fun ProveedoresScreen(onVolver: () -> Unit) {
                 contentColor = Color.White,
                 shape = RoundedCornerShape(18.dp)
             ) {
-                Icon(Icons.Filled.Add, null, Modifier.size(30.dp))
+                Icon(Icons.Filled.Add, contentDescription = "Agregar nuevo proveedor", Modifier.size(30.dp))
             }
         }
     ) { padding ->
         Crossfade(
-            targetState = when { state.cargando -> 0; state.proveedores.isEmpty() -> 1; else -> 2 },
-            animationSpec = tween(400),
+            targetState = when {
+                state.cargando -> 0
+                state.proveedores.isEmpty() -> 1
+                else -> 2
+            },
+            animationSpec = tween(280, easing = FastOutSlowInEasing),
             label = "prov_state",
-            modifier = Modifier.fillMaxSize().padding(padding)
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
         ) { est ->
             when (est) {
-                0 -> Box(Modifier.fillMaxSize(), Alignment.Center) { CircularProgressIndicator(color = AzulPrimario) }
+                0 -> Box(Modifier.fillMaxSize(), Alignment.Center) {
+                    CircularProgressIndicator(color = AzulPrimario)
+                }
                 1 -> EstadoVacioProveedores()
                 else -> {
                     if (state.proveedoresFiltrados.isEmpty()) {
                         Box(Modifier.fillMaxSize(), Alignment.Center) {
-                            Text("No se encontraron proveedores para \"${state.query}\"", color = SobreVariante)
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Icon(
+                                    Icons.Default.Search,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(56.dp),
+                                    tint = SobreVariante.copy(alpha = 0.3f)
+                                )
+                                Spacer(Modifier.height(16.dp))
+                                Text(
+                                    "Sin resultados",
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 18.sp,
+                                    color = SobreFondoClaro
+                                )
+                                Text(
+                                    "No se encontraron proveedores para \"${state.query}\"",
+                                    color = SobreVariante,
+                                    fontSize = 14.sp
+                                )
+                            }
                         }
                     } else {
                         LazyColumn(
                             Modifier.fillMaxSize(),
                             contentPadding = PaddingValues(20.dp),
-                            verticalArrangement = Arrangement.spacedBy(20.dp)
+                            verticalArrangement = Arrangement.spacedBy(12.dp)
                         ) {
-                            items(state.proveedoresFiltrados, key = { it.id }) { prov ->
-                                ProveedorHeroCard(
+                            itemsIndexed(
+                                state.proveedoresFiltrados,
+                                key = { _, p -> p.id }
+                            ) { index, prov ->
+                                ProveedorCard(
                                     prov = prov,
+                                    index = index,
+                                    staggerOffsetPx = staggerOffsetPx,
                                     onEditar = { viewModel.onEditarProveedor(prov) },
                                     onEliminar = { aEliminar = prov }
                                 )
@@ -151,7 +198,9 @@ fun ProveedoresScreen(onVolver: () -> Unit) {
             containerColor = SuperficieClara,
             shape = RoundedCornerShape(24.dp),
             title = { Text("¿Eliminar contacto?", fontWeight = FontWeight.Bold) },
-            text = { Text("¿Deseas quitar a \"${prov.nombre}\"? Esto no eliminará sus productos, pero quedarán sin proveedor asignado.") },
+            text = {
+                Text("¿Deseas quitar a \"${prov.nombre}\"? Esto no eliminará sus productos, pero quedarán sin proveedor asignado.")
+            },
             confirmButton = {
                 Button(
                     onClick = { viewModel.eliminar(prov); aEliminar = null },
@@ -160,95 +209,134 @@ fun ProveedoresScreen(onVolver: () -> Unit) {
                 ) { Text("Eliminar") }
             },
             dismissButton = {
-                TextButton(onClick = { aEliminar = null }) { Text("Cancelar", color = SobreFondoClaro) }
+                TextButton(onClick = { aEliminar = null }) {
+                    Text("Cancelar", color = SobreFondoClaro)
+                }
             }
         )
     }
 }
 
 @Composable
-private fun ProveedorHeroCard(prov: Proveedor, onEditar: () -> Unit, onEliminar: () -> Unit) {
+private fun ProveedorCard(
+    prov: Proveedor,
+    index: Int,
+    staggerOffsetPx: Float,
+    onEditar: () -> Unit,
+    onEliminar: () -> Unit
+) {
+    var itemVisible by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) {
+        kotlinx.coroutines.delay(index * 50L)
+        itemVisible = true
+    }
+    val staggerProgress by animateFloatAsState(
+        targetValue = if (itemVisible) 1f else 0f,
+        animationSpec = tween(220, easing = FastOutSlowInEasing),
+        label = "stagger_$index"
+    )
+
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+    val pressScale by animateFloatAsState(
+        targetValue = if (isPressed) 0.97f else 1f,
+        animationSpec = tween(120, easing = FastOutSlowInEasing),
+        label = "press_$index"
+    )
+
     Surface(
         onClick = onEditar,
+        interactionSource = interactionSource,
         color = SuperficieClara,
-        shape = RoundedCornerShape(28.dp),
-        shadowElevation = 2.dp,
-        border = androidx.compose.foundation.BorderStroke(1.dp, BordeClaro.copy(alpha = 0.5f))
+        shape = RoundedCornerShape(20.dp),
+        shadowElevation = 1.dp,
+        border = androidx.compose.foundation.BorderStroke(1.dp, BordeClaro.copy(alpha = 0.4f)),
+        modifier = Modifier.graphicsLayer {
+            alpha = staggerProgress
+            translationY = (1f - staggerProgress) * staggerOffsetPx
+            scaleX = pressScale
+            scaleY = pressScale
+        }
     ) {
-        Column(Modifier.fillMaxWidth()) {
-            // Cabecera Hero con Graduado o Color Sólido Aqua
-            Box(
-                Modifier
-                    .fillMaxWidth()
-                    .height(80.dp)
-                    .background(Brush.horizontalGradient(listOf(AzulPrimario, AzulPrimario.copy(alpha = 0.7f)))),
-                contentAlignment = Alignment.CenterStart
+        Row(
+            Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Surface(
+                shape = CircleShape,
+                color = AzulPrimario,
+                modifier = Modifier.size(48.dp)
             ) {
-                Row(Modifier.padding(horizontal = 20.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Surface(
-                        shape = CircleShape,
-                        color = Color.White.copy(alpha = 0.2f),
-                        modifier = Modifier.size(44.dp)
-                    ) {
-                        Box(contentAlignment = Alignment.Center) {
-                            Text(
-                                prov.nombre.take(1).uppercase(),
-                                fontSize = 20.sp, fontWeight = FontWeight.Black, color = Color.White
-                            )
-                        }
-                    }
-                    Spacer(Modifier.width(16.dp))
+                Box(contentAlignment = Alignment.Center) {
                     Text(
-                        prov.nombre,
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.ExtraBold,
-                        color = Color.White,
-                        maxLines = 1
+                        prov.nombre.take(1).uppercase(),
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.Black,
+                        color = SobreAzul
                     )
                 }
             }
-            
-            // Cuerpo de la Card
-            Row(
-                Modifier
-                    .fillMaxWidth()
-                    .padding(20.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
+
+            Spacer(Modifier.width(16.dp))
+
+            Column(Modifier.weight(1f)) {
+                Text(
+                    prov.nombre,
+                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                    color = SobreFondoClaro,
+                    maxLines = 1
+                )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        Icons.Outlined.Phone,
+                        contentDescription = "Teléfono",
+                        Modifier.size(14.dp),
+                        tint = SobreVariante
+                    )
+                    Spacer(Modifier.width(4.dp))
+                    Text(
+                        prov.telefono,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = SobreVariante
+                    )
+                }
+                if (!prov.notas.isNullOrBlank()) {
+                    Spacer(Modifier.height(4.dp))
+                    Text(
+                        prov.notas!!,
+                        style = MaterialTheme.typography.bodySmall.copy(fontStyle = FontStyle.Italic),
+                        color = SobreVariante.copy(alpha = 0.7f),
+                        maxLines = 2
+                    )
+                }
+            }
+
+            IconButton(
+                onClick = onEliminar,
+                modifier = Modifier
+                    .size(40.dp)
+                    .clip(CircleShape)
+                    .background(RojoFondo)
             ) {
-                Column(Modifier.weight(1f)) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Outlined.Phone, null, Modifier.size(16.dp), tint = AzulPrimario)
-                        Spacer(Modifier.width(8.dp))
-                        Text(prov.telefono, fontWeight = FontWeight.Bold, color = SobreFondoClaro)
-                    }
-                    if (!prov.notas.isNullOrBlank()) {
-                        Spacer(Modifier.height(4.dp))
-                        Text(
-                            prov.notas!!,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = SobreVariante,
-                            maxLines = 2
-                        )
-                    }
-                }
-                
-                IconButton(
-                    onClick = onEliminar,
-                    modifier = Modifier
-                        .size(40.dp)
-                        .clip(CircleShape)
-                        .background(RojoFondo)
-                ) {
-                    Icon(Icons.Filled.DeleteOutline, null, tint = RojoStock, modifier = Modifier.size(20.dp))
-                }
+                Icon(
+                    Icons.Filled.DeleteOutline,
+                    contentDescription = "Eliminar proveedor ${prov.nombre}",
+                    tint = RojoStock,
+                    modifier = Modifier.size(20.dp)
+                )
             }
         }
     }
 }
 
 @Composable
-private fun FormProveedorLimpio(inicial: Proveedor?, guardando: Boolean, onGuardar: (String, String, String?) -> Unit) {
+private fun FormProveedorLimpio(
+    inicial: Proveedor?,
+    guardando: Boolean,
+    onGuardar: (String, String, String?) -> Unit
+) {
     var nombre by remember(inicial) { mutableStateOf(inicial?.nombre ?: "") }
     var telefono by remember(inicial) { mutableStateOf(inicial?.telefono ?: "") }
     var notas by remember(inicial) { mutableStateOf(inicial?.notas ?: "") }
@@ -266,7 +354,7 @@ private fun FormProveedorLimpio(inicial: Proveedor?, guardando: Boolean, onGuard
             style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Black),
             color = SobreFondoClaro
         )
-        
+
         TextField(
             value = nombre,
             onValueChange = { nombre = it },
@@ -312,18 +400,20 @@ private fun FormProveedorLimpio(inicial: Proveedor?, guardando: Boolean, onGuard
                 focusedLabelColor = AzulPrimario
             )
         )
-        
+
         Spacer(Modifier.height(8.dp))
-        
+
         Button(
-            onClick = { onGuardar(nombre, telefono, if(notas.isBlank()) null else notas) },
+            onClick = { onGuardar(nombre, telefono, if (notas.isBlank()) null else notas) },
             enabled = !guardando && nombre.isNotBlank() && telefono.isNotBlank(),
-            modifier = Modifier.fillMaxWidth().height(56.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(52.dp),
             shape = RoundedCornerShape(16.dp),
             colors = ButtonDefaults.buttonColors(containerColor = AzulPrimario)
         ) {
             if (guardando) CircularProgressIndicator(Modifier.size(24.dp), color = Color.White)
-            else Text("CONFIRMAR DATOS", fontWeight = FontWeight.ExtraBold, letterSpacing = 1.sp)
+            else Text("CONFIRMAR DATOS", fontWeight = FontWeight.SemiBold, letterSpacing = 1.sp)
         }
     }
 }
@@ -331,7 +421,9 @@ private fun FormProveedorLimpio(inicial: Proveedor?, guardando: Boolean, onGuard
 @Composable
 private fun EstadoVacioProveedores() {
     Column(
-        Modifier.fillMaxSize().padding(40.dp),
+        Modifier
+            .fillMaxSize()
+            .padding(40.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
@@ -341,13 +433,28 @@ private fun EstadoVacioProveedores() {
             modifier = Modifier.size(100.dp)
         ) {
             Box(contentAlignment = Alignment.Center) {
-                Icon(Icons.Outlined.Groups, null, Modifier.size(48.dp), tint = AzulPrimario.copy(alpha = 0.3f))
+                Icon(
+                    Icons.Outlined.Groups,
+                    contentDescription = null,
+                    Modifier.size(56.dp),
+                    tint = AzulPrimario.copy(alpha = 0.3f)
+                )
             }
         }
         Spacer(Modifier.height(24.dp))
-        Text("Sin contactos", fontWeight = FontWeight.ExtraBold, fontSize = 22.sp, color = SobreFondoClaro)
+        Text(
+            "Sin contactos",
+            fontWeight = FontWeight.ExtraBold,
+            fontSize = 22.sp,
+            color = SobreFondoClaro
+        )
         Spacer(Modifier.height(8.dp))
-        Text("Empieza registrando a tus proveedores para vincularlos con tus productos.", 
-            textAlign = TextAlign.Center, fontSize = 14.sp, color = SobreVariante, lineHeight = 20.sp)
+        Text(
+            "Empieza registrando a tus proveedores para vincularlos con tus productos.",
+            textAlign = TextAlign.Center,
+            fontSize = 14.sp,
+            color = SobreVariante,
+            lineHeight = 20.sp
+        )
     }
 }

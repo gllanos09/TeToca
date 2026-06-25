@@ -1,11 +1,11 @@
 package com.tetocaApp.tetoca.ui.productos
 
-import androidx.compose.animation.*
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -19,6 +19,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -42,39 +43,84 @@ fun DetalleScreen(
     val state by viewModel.uiState.collectAsState()
     var confirmarEliminar by remember { mutableStateOf(false) }
 
+    var contentVisible by remember { mutableStateOf(false) }
+    LaunchedEffect(state.producto) {
+        if (state.producto != null) contentVisible = true
+    }
+    val enterProgress by animateFloatAsState(
+        targetValue = if (contentVisible) 1f else 0f,
+        animationSpec = tween(280, easing = FastOutSlowInEasing),
+        label = "enter"
+    )
+
     Scaffold(
         containerColor = FondoClaro,
         topBar = {
-            CenterAlignedTopAppBar(
-                title = {
-                    Text(
-                        "DETALLES",
-                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Black, letterSpacing = 2.sp),
-                        color = SobreVariante
-                    )
-                },
+            TopAppBar(
+                title = { Text("Detalles", fontWeight = FontWeight.Bold) },
                 navigationIcon = {
                     IconButton(onClick = onVolver) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, null, tint = AzulPrimario)
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Volver atrás")
                     }
                 },
-                actions = {
-                    IconButton(
-                        onClick = { onEditar(productoId) },
-                        modifier = Modifier.padding(end = 8.dp).size(40.dp).clip(RoundedCornerShape(12.dp)).background(AzulFondo)
-                    ) {
-                        Icon(Icons.Filled.Edit, null, Modifier.size(20.dp), tint = AzulPrimario)
-                    }
-                },
-                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(containerColor = FondoClaro)
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = AzulPrimario,
+                    titleContentColor = SobreAzul,
+                    navigationIconContentColor = SobreAzul
+                )
             )
+        },
+        bottomBar = {
+            if (state.producto != null) {
+                Surface(
+                    Modifier.fillMaxWidth(),
+                    color = SuperficieClara,
+                    shadowElevation = 8.dp
+                ) {
+                    Row(
+                        Modifier
+                            .navigationBarsPadding()
+                            .padding(horizontal = 20.dp, vertical = 12.dp),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        OutlinedButton(
+                            onClick = { confirmarEliminar = true },
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(52.dp),
+                            colors = ButtonDefaults.outlinedButtonColors(contentColor = RojoStock),
+                            border = androidx.compose.foundation.BorderStroke(1.5.dp, RojoStock.copy(alpha = 0.5f)),
+                            shape = RoundedCornerShape(16.dp)
+                        ) {
+                            Icon(Icons.Default.DeleteOutline, contentDescription = "Eliminar producto", Modifier.size(20.dp))
+                            Spacer(Modifier.width(8.dp))
+                            Text("Eliminar", fontWeight = FontWeight.Bold)
+                        }
+                        Button(
+                            onClick = { onEditar(productoId) },
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(52.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = AzulPrimario),
+                            shape = RoundedCornerShape(16.dp)
+                        ) {
+                            Icon(Icons.Filled.Edit, contentDescription = "Editar producto", Modifier.size(20.dp))
+                            Spacer(Modifier.width(8.dp))
+                            Text("Editar", fontWeight = FontWeight.Bold)
+                        }
+                    }
+                }
+            }
         }
     ) { padding ->
         Box(Modifier.fillMaxSize().padding(padding)) {
             when {
-                state.cargando -> CircularProgressIndicator(Modifier.align(Alignment.Center), color = AzulPrimario)
+                state.cargando -> CircularProgressIndicator(
+                    Modifier.align(Alignment.Center),
+                    color = AzulPrimario
+                )
                 state.producto == null -> Text(
-                    state.error ?: "Producto no encontrado", 
+                    state.error ?: "Producto no encontrado",
                     Modifier.align(Alignment.Center),
                     color = RojoStock
                 )
@@ -86,35 +132,41 @@ fun DetalleScreen(
                         Modifier
                             .fillMaxSize()
                             .verticalScroll(rememberScrollState())
-                            .padding(20.dp),
+                            .padding(20.dp)
+                            .graphicsLayer {
+                                alpha = enterProgress
+                                translationY = (1f - enterProgress) * 40f
+                            },
                         verticalArrangement = Arrangement.spacedBy(20.dp)
                     ) {
-                        // Card de Stock Principal (Enfocado en el cliente)
+                        Text(
+                            p.nombre,
+                            style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Black),
+                            color = AzulPrimario,
+                            textAlign = TextAlign.Start
+                        )
+
+                        Text(
+                            p.categoria.uppercase(),
+                            style = MaterialTheme.typography.labelSmall.copy(
+                                letterSpacing = 1.sp,
+                                fontWeight = FontWeight.Bold
+                            ),
+                            color = SobreVariante
+                        )
+
                         Surface(
                             color = SuperficieClara,
-                            shape = RoundedCornerShape(28.dp),
-                            shadowElevation = 0.5.dp,
+                            shape = RoundedCornerShape(24.dp),
+                            shadowElevation = 2.dp,
                             border = androidx.compose.foundation.BorderStroke(1.dp, BordeClaro.copy(alpha = 0.5f))
                         ) {
                             Column(
-                                Modifier.padding(24.dp).fillMaxWidth(),
+                                Modifier
+                                    .padding(24.dp)
+                                    .fillMaxWidth(),
                                 horizontalAlignment = Alignment.CenterHorizontally
                             ) {
-                                Text(
-                                    p.categoria.uppercase(),
-                                    style = MaterialTheme.typography.labelSmall.copy(letterSpacing = 1.sp),
-                                    color = SobreVariante
-                                )
-                                Spacer(Modifier.height(8.dp))
-                                Text(
-                                    p.nombre,
-                                    style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Black),
-                                    color = SobreFondoClaro,
-                                    textAlign = TextAlign.Center
-                                )
-                                Spacer(Modifier.height(24.dp))
-                                
-                                // Indicador de cantidad grande
                                 Row(verticalAlignment = Alignment.Bottom) {
                                     Text(
                                         "${p.stockActual}",
@@ -130,9 +182,9 @@ fun DetalleScreen(
                                         color = colorStock.copy(alpha = 0.6f)
                                     )
                                 }
-                                
+
                                 Spacer(Modifier.height(16.dp))
-                                
+
                                 Surface(
                                     color = colorStock.copy(alpha = 0.1f),
                                     shape = RoundedCornerShape(12.dp)
@@ -147,10 +199,12 @@ fun DetalleScreen(
                             }
                         }
 
-                        // Grid de información detallada
                         Text(
                             "DATOS DEL INVENTARIO",
-                            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, letterSpacing = 1.sp),
+                            style = MaterialTheme.typography.labelSmall.copy(
+                                fontWeight = FontWeight.Bold,
+                                letterSpacing = 1.sp
+                            ),
                             color = SobreVariante,
                             modifier = Modifier.padding(start = 4.dp)
                         )
@@ -158,32 +212,31 @@ fun DetalleScreen(
                         Surface(
                             color = SuperficieClara,
                             shape = RoundedCornerShape(24.dp),
+                            shadowElevation = 2.dp,
                             border = androidx.compose.foundation.BorderStroke(1.dp, BordeClaro.copy(alpha = 0.5f))
                         ) {
                             Column(Modifier.padding(8.dp)) {
-                                DatoFila(Icons.Outlined.Payments, "Precio Unitario", 
-                                    p.precio?.let { "S/ ${"%.2f".format(it)}" } ?: "No definido")
-                                HorizontalDivider(Modifier.padding(horizontal = 16.dp), color = BordeClaro.copy(alpha = 0.4f))
+                                DatoFila(
+                                    Icons.Outlined.Payments, "Precio Unitario",
+                                    p.precio?.let { "S/ ${"%.2f".format(it)}" } ?: "No definido"
+                                )
+                                HorizontalDivider(
+                                    Modifier.padding(horizontal = 16.dp),
+                                    color = BordeClaro.copy(alpha = 0.4f)
+                                )
                                 DatoFila(Icons.Outlined.LowPriority, "Stock Mínimo", "${p.stockMinimo} unid.")
-                                HorizontalDivider(Modifier.padding(horizontal = 16.dp), color = BordeClaro.copy(alpha = 0.4f))
-                                DatoFila(Icons.Outlined.BusinessCenter, "Proveedor", state.proveedorNombre ?: "Sin asignar")
+                                HorizontalDivider(
+                                    Modifier.padding(horizontal = 16.dp),
+                                    color = BordeClaro.copy(alpha = 0.4f)
+                                )
+                                DatoFila(
+                                    Icons.Outlined.BusinessCenter, "Proveedor",
+                                    state.proveedorNombre ?: "Sin asignar"
+                                )
                             }
                         }
 
-                        Spacer(Modifier.height(20.dp))
-
-                        // Botón de eliminar más discreto pero accesible
-                        TextButton(
-                            onClick = { confirmarEliminar = true },
-                            modifier = Modifier.fillMaxWidth().height(56.dp),
-                            colors = ButtonDefaults.textButtonColors(contentColor = RojoStock)
-                        ) {
-                            Icon(Icons.Default.DeleteOutline, null, Modifier.size(20.dp))
-                            Spacer(Modifier.width(8.dp))
-                            Text("ELIMINAR PRODUCTO", fontWeight = FontWeight.Bold)
-                        }
-                        
-                        Spacer(Modifier.height(40.dp))
+                        Spacer(Modifier.height(80.dp))
                     }
                 }
             }
@@ -205,7 +258,9 @@ fun DetalleScreen(
                 ) { Text("Eliminar") }
             },
             dismissButton = {
-                TextButton(onClick = { confirmarEliminar = false }) { Text("Cancelar", color = SobreFondoClaro) }
+                TextButton(onClick = { confirmarEliminar = false }) {
+                    Text("Cancelar", color = SobreFondoClaro)
+                }
             }
         )
     }
@@ -214,19 +269,28 @@ fun DetalleScreen(
 @Composable
 private fun DatoFila(icono: ImageVector, titulo: String, valor: String) {
     Row(
-        Modifier.fillMaxWidth().padding(16.dp),
+        Modifier
+            .fillMaxWidth()
+            .padding(16.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Box(
-            Modifier.size(36.dp).clip(RoundedCornerShape(10.dp)).background(AzulFondo),
+            Modifier
+                .size(36.dp)
+                .clip(RoundedCornerShape(10.dp))
+                .background(AzulFondo),
             contentAlignment = Alignment.Center
         ) {
-            Icon(icono, null, Modifier.size(18.dp), tint = AzulPrimario)
+            Icon(icono, contentDescription = titulo, Modifier.size(18.dp), tint = AzulPrimario)
         }
         Spacer(Modifier.width(16.dp))
         Column {
             Text(titulo, style = MaterialTheme.typography.labelSmall, color = SobreVariante)
-            Text(valor, style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold), color = SobreFondoClaro)
+            Text(
+                valor,
+                style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold),
+                color = SobreFondoClaro
+            )
         }
     }
 }

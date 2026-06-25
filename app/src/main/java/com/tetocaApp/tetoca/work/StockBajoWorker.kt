@@ -47,30 +47,53 @@ class StockBajoWorker(
             context, 0, intent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
-
-        val titulo = if (cantidad == 1) "⚠️ 1 producto con stock bajo"
-        else "⚠️ $cantidad productos con stock bajo"
-
-        val cuerpo = nombres.take(3).joinToString(", ") +
-                if (nombres.size > 3) " y ${nombres.size - 3} más…" else ""
-
-        val notificacion = NotificationCompat.Builder(context, CANAL_ID)
-            .setSmallIcon(android.R.drawable.ic_dialog_alert)
-            .setContentTitle(titulo)
-            .setContentText(cuerpo)
-            .setStyle(NotificationCompat.BigTextStyle().bigText(cuerpo))
-            .setPriority(NotificationCompat.PRIORITY_HIGH)
-            .setContentIntent(pendingIntent)
-            .setAutoCancel(true)
-            .build()
-
         val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-        manager.notify(NOTIFICACION_ID, notificacion)
+
+        if (cantidad == 1) {
+            // Un solo producto — notificación directa y específica
+            val notificacion = NotificationCompat.Builder(context, CANAL_ID)
+                .setSmallIcon(android.R.drawable.ic_dialog_alert)
+                .setContentTitle("TeToca: Reponer ${nombres.first()}")
+                .setContentText("El stock está por debajo del mínimo. Toca para ver el detalle.")
+                .setPriority(NotificationCompat.PRIORITY_HIGH)
+                .setContentIntent(pendingIntent)
+                .setAutoCancel(true)
+                .build()
+            manager.notify(NOTIFICACION_ID, notificacion)
+        } else {
+            // Varios productos — una notificación por cada uno con ID único
+            nombres.forEachIndexed { index, nombre ->
+                val notificacion = NotificationCompat.Builder(context, CANAL_ID)
+                    .setSmallIcon(android.R.drawable.ic_dialog_alert)
+                    .setContentTitle("TeToca: Reponer $nombre")
+                    .setContentText("Stock bajo. Toca para ir a Reposición.")
+                    .setPriority(NotificationCompat.PRIORITY_HIGH)
+                    .setContentIntent(pendingIntent)
+                    .setAutoCancel(true)
+                    .setGroup(GRUPO_STOCK_BAJO)
+                    .build()
+                manager.notify(NOTIFICACION_ID + index + 1, notificacion)
+            }
+
+            // Notificación resumen del grupo (visible en el drawer como cabecera)
+            val resumen = NotificationCompat.Builder(context, CANAL_ID)
+                .setSmallIcon(android.R.drawable.ic_dialog_alert)
+                .setContentTitle("TeToca")
+                .setContentText("$cantidad productos necesitan reposición")
+                .setPriority(NotificationCompat.PRIORITY_HIGH)
+                .setContentIntent(pendingIntent)
+                .setAutoCancel(true)
+                .setGroup(GRUPO_STOCK_BAJO)
+                .setGroupSummary(true)
+                .build()
+            manager.notify(NOTIFICACION_ID, resumen)
+        }
     }
 
     companion object {
         const val CANAL_ID = "tetoca_stock_bajo"
         const val NOTIFICACION_ID = 1001
         const val WORK_NAME = "tetoca_stock_bajo_worker"
+        const val GRUPO_STOCK_BAJO = "com.tetocaApp.tetoca.STOCK_BAJO"
     }
 }
