@@ -17,4 +17,6 @@ sealed class Rutas(val ruta: String) {
     }
 
     data object Proveedores : Rutas("proveedores")
+    data object Reposicion : Rutas("reposicion")
+    data object Estadisticas : Rutas("estadisticas")
 }

@@ -9,10 +9,12 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.tetocaApp.tetoca.ui.auth.LoginScreen
 import com.tetocaApp.tetoca.ui.auth.RegisterScreen
+import com.tetocaApp.tetoca.ui.estadisticas.EstadisticasScreen
 import com.tetocaApp.tetoca.ui.productos.DetalleScreen
 import com.tetocaApp.tetoca.ui.productos.FormularioScreen
 import com.tetocaApp.tetoca.ui.productos.ListaProductosScreen
 import com.tetocaApp.tetoca.ui.proveedores.ProveedoresScreen
+import com.tetocaApp.tetoca.ui.reposicion.ReposicionScreen
 import com.tetocaApp.tetoca.viewmodel.AuthViewModel
 
 @Composable
@@ -20,15 +22,10 @@ fun NavGraph() {
     val navController = rememberNavController()
     val authViewModel: AuthViewModel = viewModel()
 
-    // Si ya hay sesión activa, la app abre directo en ListaProductos.
-    // Si no, muestra Login primero.
     val inicio = if (authViewModel.haySession) Rutas.ListaProductos.ruta
     else Rutas.Login.ruta
 
-    NavHost(
-        navController = navController,
-        startDestination = inicio
-    ) {
+    NavHost(navController = navController, startDestination = inicio) {
 
         // ── Auth ────────────────────────────────────────────────────────
         composable(Rutas.Login.ruta) {
@@ -38,9 +35,7 @@ fun NavGraph() {
                         popUpTo(Rutas.Login.ruta) { inclusive = true }
                     }
                 },
-                onIrARegistro = {
-                    navController.navigate(Rutas.Registro.ruta)
-                }
+                onIrARegistro = { navController.navigate(Rutas.Registro.ruta) }
             )
         }
 
@@ -51,9 +46,7 @@ fun NavGraph() {
                         popUpTo(Rutas.Login.ruta) { inclusive = true }
                     }
                 },
-                onIrALogin = {
-                    navController.popBackStack()
-                }
+                onIrALogin = { navController.popBackStack() }
             )
         }
 
@@ -68,6 +61,12 @@ fun NavGraph() {
                 },
                 onProveedoresClick = {
                     navController.navigate(Rutas.Proveedores.ruta)
+                },
+                onReposicionClick = {
+                    navController.navigate(Rutas.Reposicion.ruta)
+                },
+                onEstadisticasClick = {
+                    navController.navigate(Rutas.Estadisticas.ruta)
                 }
             )
         }
@@ -107,6 +106,14 @@ fun NavGraph() {
 
         composable(Rutas.Proveedores.ruta) {
             ProveedoresScreen(onVolver = { navController.popBackStack() })
+        }
+
+        composable(Rutas.Reposicion.ruta) {
+            ReposicionScreen(onVolver = { navController.popBackStack() })
+        }
+
+        composable(Rutas.Estadisticas.ruta) {
+            EstadisticasScreen(onVolver = { navController.popBackStack() })
         }
     }
 }

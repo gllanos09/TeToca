@@ -11,9 +11,11 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.outlined.BarChart
 import androidx.compose.material.icons.outlined.FilterList
 import androidx.compose.material.icons.outlined.Groups
 import androidx.compose.material.icons.outlined.Inventory2
+import androidx.compose.material.icons.outlined.Warning
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -38,7 +40,9 @@ import com.tetocaApp.tetoca.viewmodel.ProductosViewModel
 fun ListaProductosScreen(
     onProductoClick: (productoId: Long) -> Unit,
     onNuevoProducto: () -> Unit,
-    onProveedoresClick: () -> Unit
+    onProveedoresClick: () -> Unit,
+    onReposicionClick: () -> Unit = {},
+    onEstadisticasClick: () -> Unit = {}
 ) {
     val context = LocalContext.current
     val viewModel: ProductosViewModel = viewModel(factory = ProductosViewModel.Factory(context))
@@ -73,13 +77,25 @@ fun ListaProductosScreen(
                         )
                     }
                     IconButton(
+                        onClick = onReposicionClick,
+                        modifier = Modifier.size(48.dp).clip(RoundedCornerShape(14.dp)).background(AzulFondo)
+                    ) {
+                        Icon(Icons.Outlined.Warning, "Reposición", tint = AzulPrimario)
+                    }
+                    IconButton(
+                        onClick = onEstadisticasClick,
+                        modifier = Modifier.size(48.dp).clip(RoundedCornerShape(14.dp)).background(AzulFondo)
+                    ) {
+                        Icon(Icons.Outlined.BarChart, "Estadísticas", tint = AzulPrimario)
+                    }
+                    IconButton(
                         onClick = onProveedoresClick,
                         modifier = Modifier.size(48.dp).clip(RoundedCornerShape(14.dp)).background(AzulFondo)
                     ) {
                         Icon(Icons.Outlined.Groups, "Proveedores", tint = AzulPrimario)
                     }
                 }
-                
+
                 // Barra de Búsqueda Integrada
                 OutlinedTextField(
                     value = state.query,
@@ -92,9 +108,9 @@ fun ListaProductosScreen(
                     trailingIcon = {
                         if (state.filtro != FiltroStock.TODOS) {
                             Icon(
-                                Icons.Outlined.FilterList, 
-                                null, 
-                                tint = AzulPrimario, 
+                                Icons.Outlined.FilterList,
+                                null,
+                                tint = AzulPrimario,
                                 modifier = Modifier.clickable { viewModel.onFiltroChange(FiltroStock.TODOS) }
                             )
                         }
@@ -173,10 +189,10 @@ fun ListaProductosScreen(
 
 @Composable
 private fun FiltroCard(
-    label: String, 
-    count: Int, 
-    color: Color?, 
-    seleccionado: Boolean, 
+    label: String,
+    count: Int,
+    color: Color?,
+    seleccionado: Boolean,
     modifier: Modifier,
     onClick: () -> Unit
 ) {
@@ -205,7 +221,7 @@ private fun FiltroCard(
 @Composable
 private fun ProductoCompactRow(p: Producto, onClick: () -> Unit) {
     val (color, _) = nivelStock(p.stockActual, p.stockMinimo)
-    
+
     Surface(
         onClick = onClick,
         color = SuperficieClara,
@@ -219,9 +235,9 @@ private fun ProductoCompactRow(p: Producto, onClick: () -> Unit) {
         ) {
             // Mini barra lateral de color
             Box(Modifier.width(4.dp).height(32.dp).clip(CircleShape).background(color))
-            
+
             Spacer(Modifier.width(12.dp))
-            
+
             Column(Modifier.weight(1f)) {
                 Text(
                     p.nombre,
@@ -236,7 +252,7 @@ private fun ProductoCompactRow(p: Producto, onClick: () -> Unit) {
                     color = SobreVariante
                 )
             }
-            
+
             Column(horizontalAlignment = Alignment.End) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(

@@ -34,7 +34,30 @@ interface ProductoDao {
     @Query("SELECT * FROM productos WHERE stockActual < stockMinimo ORDER BY nombre ASC")
     fun obtenerConStockBajo(): Flow<List<Producto>>
 
-    /** Versión suspend para uso en WorkManager (lectura única, no reactiva). */
+    /** Para WorkManager — lectura única sin Flow. */
     @Query("SELECT * FROM productos WHERE stockActual < stockMinimo ORDER BY nombre ASC")
     suspend fun obtenerConStockBajoUnaVez(): List<Producto>
+
+    // ── Estadísticas ───────────────────────────────────────────────────
+
+    /** Total de SKUs activos (productos distintos). */
+    @Query("SELECT COUNT(*) FROM productos")
+    fun contarSkus(): Flow<Int>
+
+    /** Valor total del inventario (precio * stockActual). */
+    @Query("SELECT SUM(precio * stockActual) FROM productos WHERE precio IS NOT NULL")
+    fun calcularValorTotal(): Flow<Double?>
+
+    /** Categoría con más unidades en stock. */
+    @Query("""
+        SELECT categoria FROM productos
+        GROUP BY categoria
+        ORDER BY SUM(stockActual) DESC
+        LIMIT 1
+    """)
+    fun categoriaMasStock(): Flow<String?>
+
+    /** Total de unidades en stock (para mostrar en estadísticas). */
+    @Query("SELECT SUM(stockActual) FROM productos")
+    fun totalUnidades(): Flow<Int?>
 }
