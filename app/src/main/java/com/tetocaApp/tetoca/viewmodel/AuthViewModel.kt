@@ -4,6 +4,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
+import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.messaging.FirebaseMessaging
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -74,6 +76,7 @@ class AuthViewModel : ViewModel() {
             _uiState.value = _uiState.value.copy(cargando = true, error = null)
             try {
                 val result = auth.signInWithEmailAndPassword(emailLimpio, passLimpio).await()
+                guardarTokenFcm(result.user?.uid)
                 _uiState.value = _uiState.value.copy(
                     cargando = false,
                     usuario = result.user,
@@ -99,6 +102,17 @@ class AuthViewModel : ViewModel() {
 
     fun limpiarExitoso() {
         _uiState.value = _uiState.value.copy(exitoso = false)
+    }
+
+    /** Guarda el token FCM del dispositivo en Firestore para notificaciones push dirigidas. */
+    private fun guardarTokenFcm(uid: String?) {
+        uid ?: return
+        FirebaseMessaging.getInstance().token.addOnSuccessListener { token ->
+            FirebaseFirestore.getInstance()
+                .collection("usuarios")
+                .document(uid)
+                .update("fcmToken", token)
+        }
     }
 
     /** Convierte excepciones de Firebase en mensajes legibles en español */

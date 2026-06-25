@@ -32,6 +32,11 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
 
+        com.google.firebase.messaging.FirebaseMessaging.getInstance().token
+            .addOnSuccessListener { token ->
+                android.util.Log.d("FCM_TOKEN", token)
+            }
+
         crearCanalNotificaciones()
         pedirPermisoNotificaciones()
         programarWorkerStockBajo()
