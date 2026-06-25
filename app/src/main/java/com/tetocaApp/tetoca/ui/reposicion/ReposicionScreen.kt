@@ -2,42 +2,59 @@ package com.tetocaApp.tetoca.ui.reposicion
 
 import android.content.Intent
 import android.net.Uri
-import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.tween
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.*
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.slideInVertically
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.Chat
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Warning
-import androidx.compose.material.icons.outlined.Inventory2
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.tetocaApp.tetoca.data.local.Producto
+import com.tetocaApp.tetoca.data.local.Proveedor
 import com.tetocaApp.tetoca.data.local.TeTocaDatabase
-import com.tetocaApp.tetoca.ui.theme.*
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 
 // ── ViewModel ─────────────────────────────────────────────────────────────────
@@ -47,6 +64,12 @@ class ReposicionViewModel(db: TeTocaDatabase) : ViewModel() {
     val productosBajos: StateFlow<List<Producto>> =
         db.productoDao().obtenerConStockBajo()
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    /** Mapa proveedorId → Proveedor para buscar el teléfono real al contactar por WhatsApp. */
+    val proveedores: StateFlow<Map<Long, Proveedor>> =
+        db.proveedorDao().obtenerTodos()
+            .map { lista -> lista.associateBy { it.id } }
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyMap())
 
     companion object {
         fun Factory(db: TeTocaDatabase) = object : ViewModelProvider.Factory {
@@ -66,24 +89,21 @@ fun ReposicionScreen(onVolver: () -> Unit) {
     val db = TeTocaDatabase.getInstance(context)
     val viewModel: ReposicionViewModel = viewModel(factory = ReposicionViewModel.Factory(db))
     val productos by viewModel.productosBajos.collectAsState()
-
-    val density = LocalDensity.current
-    val staggerOffsetPx = remember(density) { with(density) { 24.dp.toPx() } }
+    val proveedores by viewModel.proveedores.collectAsState()
 
     Scaffold(
-        containerColor = FondoClaro,
         topBar = {
             TopAppBar(
-                title = { Text("Reposición de stock", fontWeight = FontWeight.Bold) },
+                title = { Text("Reposición de stock") },
                 navigationIcon = {
                     IconButton(onClick = onVolver) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Volver atrás")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Volver")
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = AzulPrimario,
-                    titleContentColor = SobreAzul,
-                    navigationIconContentColor = SobreAzul
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    titleContentColor = MaterialTheme.colorScheme.onPrimary,
+                    navigationIconContentColor = MaterialTheme.colorScheme.onPrimary
                 )
             )
         }
@@ -94,79 +114,48 @@ fun ReposicionScreen(onVolver: () -> Unit) {
                 .padding(padding)
         ) {
             if (productos.isEmpty()) {
+                // Estado vacío — todo el stock está OK
                 Column(
-                    modifier = Modifier
-                        .align(Alignment.Center)
-                        .padding(40.dp),
+                    modifier = Modifier.align(Alignment.Center).padding(32.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    Surface(
-                        color = VerdeFondo,
-                        shape = CircleShape,
-                        modifier = Modifier.size(100.dp)
-                    ) {
-                        Box(contentAlignment = Alignment.Center) {
-                            Icon(
-                                Icons.Filled.CheckCircle,
-                                contentDescription = null,
-                                modifier = Modifier.size(56.dp),
-                                tint = VerdeStock.copy(alpha = 0.5f)
-                            )
-                        }
-                    }
-                    Spacer(Modifier.height(24.dp))
-                    Text(
-                        "¡Todo en orden!",
-                        fontWeight = FontWeight.ExtraBold,
-                        fontSize = 22.sp,
-                        color = SobreFondoClaro
+                    Icon(
+                        Icons.Filled.CheckCircle,
+                        contentDescription = null,
+                        modifier = Modifier.size(56.dp),
+                        tint = MaterialTheme.colorScheme.primary
                     )
-                    Spacer(Modifier.height(8.dp))
+                    Text(
+                        "¡Todo el stock está en orden!",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold
+                    )
                     Text(
                         "No hay productos que necesiten reposición.",
-                        textAlign = TextAlign.Center,
-                        fontSize = 14.sp,
-                        color = SobreVariante,
-                        lineHeight = 20.sp
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             } else {
                 LazyColumn(
                     modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(20.dp),
+                    contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     item {
-                        Surface(
-                            color = RojoFondo.copy(alpha = 0.6f),
-                            shape = RoundedCornerShape(16.dp),
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Row(
-                                Modifier.padding(16.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Icon(
-                                    Icons.Filled.Warning,
-                                    contentDescription = null,
-                                    tint = RojoStock,
-                                    modifier = Modifier.size(20.dp)
-                                )
-                                Spacer(Modifier.width(12.dp))
-                                Text(
-                                    "${productos.size} producto(s) necesitan reposición",
-                                    style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
-                                    color = RojoStock
-                                )
-                            }
-                        }
+                        Text(
+                            "${productos.size} producto(s) necesitan reposición",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(bottom = 4.dp)
+                        )
                     }
-                    itemsIndexed(productos, key = { _, p -> p.id }) { index, producto ->
+                    itemsIndexed(productos) { index, producto ->
                         ProductoReposicionItem(
                             producto = producto,
                             index = index,
-                            staggerOffsetPx = staggerOffsetPx,
+                            proveedor = proveedores[producto.proveedorId],
                             onContactarProveedor = { telefono, mensaje ->
                                 val url = "https://wa.me/$telefono?text=${Uri.encode(mensaje)}"
                                 val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
@@ -184,99 +173,88 @@ fun ReposicionScreen(onVolver: () -> Unit) {
 private fun ProductoReposicionItem(
     producto: Producto,
     index: Int,
-    staggerOffsetPx: Float,
+    proveedor: Proveedor?,
     onContactarProveedor: (telefono: String, mensaje: String) -> Unit
 ) {
-    var itemVisible by remember { mutableStateOf(false) }
+    var visible by remember { mutableStateOf(false) }
     LaunchedEffect(producto.id) {
-        kotlinx.coroutines.delay(index * 50L)
-        itemVisible = true
+        kotlinx.coroutines.delay(index * 60L)
+        visible = true
     }
-    val staggerProgress by animateFloatAsState(
-        targetValue = if (itemVisible) 1f else 0f,
-        animationSpec = tween(220, easing = FastOutSlowInEasing),
-        label = "stagger_$index"
-    )
 
-    val deficit = (producto.stockMinimo - producto.stockActual).coerceAtLeast(0)
-
-    Surface(
-        modifier = Modifier
-            .fillMaxWidth()
-            .graphicsLayer {
-                alpha = staggerProgress
-                translationY = (1f - staggerProgress) * staggerOffsetPx
-            },
-        color = ColorErrorFondo.copy(alpha = 0.15f),
-        shape = RoundedCornerShape(20.dp),
-        border = androidx.compose.foundation.BorderStroke(1.dp, RojoStock.copy(alpha = 0.15f))
+    AnimatedVisibility(
+        visible = visible,
+        enter = fadeIn() + slideInVertically { it / 4 }
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        producto.nombre,
-                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                        color = SobreFondoClaro
-                    )
-                    Text(
-                        producto.categoria,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = SobreVariante
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.3f)
+            )
+        ) {
+            Column(modifier = Modifier.padding(16.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            producto.nombre,
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                        Text(
+                            producto.categoria,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    Icon(
+                        Icons.Filled.Warning,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.size(20.dp)
                     )
                 }
-                Surface(
-                    color = RojoStock,
-                    shape = RoundedCornerShape(10.dp)
+
+                Spacer(Modifier.height(8.dp))
+
+                Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                    StockChip(label = "Actual", valor = producto.stockActual.toString(), esError = true)
+                    StockChip(label = "Mínimo", valor = producto.stockMinimo.toString(), esError = false)
+                }
+
+                Spacer(Modifier.height(12.dp))
+
+                // Botón de WhatsApp — deep link al proveedor real
+                Button(
+                    onClick = {
+                        val telefonoProveedor = proveedor?.telefono
+                            ?.filter { it.isDigit() }  // quitar espacios/guiones
+                            ?.let { if (it.startsWith("51")) it else "51$it" }
+                            ?: return@Button  // si no hay proveedor, no hace nada
+
+                        val nombreProveedor = proveedor.nombre
+                        val mensaje = buildString {
+                            append("Hola $nombreProveedor, necesito reponer el producto *${producto.nombre}*.\n")
+                            append("Stock actual: ${producto.stockActual} unidades.\n")
+                            append("Stock mínimo requerido: ${producto.stockMinimo} unidades.\n")
+                            append("Por favor, coordinar reabastecimiento. Gracias.")
+                        }
+                        onContactarProveedor(telefonoProveedor, mensaje)
+                    },
+                    enabled = proveedor != null,
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.primary
+                    ),
+                    modifier = Modifier.fillMaxWidth()
                 ) {
                     Text(
-                        "+$deficit",
-                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
-                        style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Black),
-                        color = SobreAzul
+                        if (proveedor != null) "Contactar a ${proveedor.nombre} por WhatsApp"
+                        else "Sin proveedor asignado"
                     )
                 }
-            }
-
-            Spacer(Modifier.height(12.dp))
-
-            Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                StockChip(label = "Actual", valor = producto.stockActual.toString(), esError = true)
-                StockChip(label = "Mínimo", valor = producto.stockMinimo.toString(), esError = false)
-            }
-
-            Spacer(Modifier.height(12.dp))
-
-            Button(
-                onClick = {
-                    val mensaje = buildString {
-                        append("Hola, necesito reponer el producto *${producto.nombre}*.\n")
-                        append("Stock actual: ${producto.stockActual} unidades.\n")
-                        append("Stock mínimo requerido: ${producto.stockMinimo} unidades.\n")
-                        append("Por favor, coordinar reabastecimiento. Gracias.")
-                    }
-                    onContactarProveedor("51999999999", mensaje)
-                },
-                colors = ButtonDefaults.buttonColors(containerColor = VerdeStock),
-                shape = RoundedCornerShape(14.dp),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(48.dp)
-            ) {
-                Icon(
-                    Icons.AutoMirrored.Filled.Chat,
-                    contentDescription = "Contactar por WhatsApp",
-                    modifier = Modifier.size(18.dp)
-                )
-                Spacer(Modifier.width(8.dp))
-                Text(
-                    "Contactar por WhatsApp",
-                    fontWeight = FontWeight.SemiBold
-                )
             }
         }
     }
@@ -288,12 +266,14 @@ private fun StockChip(label: String, valor: String, esError: Boolean) {
         Text(
             label,
             style = MaterialTheme.typography.labelSmall,
-            color = SobreVariante
+            color = MaterialTheme.colorScheme.onSurfaceVariant
         )
         Text(
             valor,
-            style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
-            color = if (esError) RojoStock else SobreFondoClaro
+            style = MaterialTheme.typography.titleLarge,
+            fontWeight = FontWeight.Bold,
+            color = if (esError) MaterialTheme.colorScheme.error
+            else MaterialTheme.colorScheme.onSurface
         )
     }
 }

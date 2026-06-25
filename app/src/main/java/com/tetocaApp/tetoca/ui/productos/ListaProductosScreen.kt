@@ -224,13 +224,6 @@ fun ListaProductosScreen(
                         verticalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
                         item {
-                            HeroResumen(
-                                total = state.productos.size,
-                                criticos = countCriticos,
-                                bajos = countBajos
-                            )
-                        }
-                        item {
                             Text(
                                 "Mostrando ${state.productosFiltrados.size} resultados",
                                 style = MaterialTheme.typography.labelSmall,
@@ -244,41 +237,6 @@ fun ListaProductosScreen(
                     }
                 }
             }
-        }
-    }
-}
-
-@Composable
-private fun HeroResumen(total: Int, criticos: Int, bajos: Int) {
-    val ok = total - criticos - bajos
-
-    var visible by remember { mutableStateOf(false) }
-    LaunchedEffect(Unit) { visible = true }
-    val progress by animateFloatAsState(
-        targetValue = if (visible) 1f else 0f,
-        animationSpec = tween(400, easing = FastOutSlowInEasing),
-        label = "hero"
-    )
-
-    Surface(
-        modifier = Modifier
-            .fillMaxWidth()
-            .graphicsLayer {
-                alpha = progress
-                translationY = (1f - progress) * 30f
-            },
-        color = AzulFondo.copy(alpha = 0.6f),
-        shape = RoundedCornerShape(20.dp)
-    ) {
-        Row(
-            Modifier.padding(16.dp),
-            horizontalArrangement = Arrangement.SpaceEvenly,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            HeroStat(total.toString(), "Total", AzulPrimario, Modifier.weight(1f))
-            HeroStat(ok.toString(), "Óptimo", VerdeStock, Modifier.weight(1f))
-            HeroStat(criticos.toString(), "Crítico", RojoStock, Modifier.weight(1f))
-            HeroStat(bajos.toString(), "Bajo", AmbarStock, Modifier.weight(1f))
         }
     }
 }
