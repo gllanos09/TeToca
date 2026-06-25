@@ -1,5 +1,7 @@
 package com.tetocaApp.tetoca.ui.proveedores
 
+import android.content.Intent
+import android.net.Uri
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.Spring
@@ -18,6 +20,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.DeleteOutline
+import androidx.compose.material.icons.filled.Message
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.outlined.Groups
 import androidx.compose.material.icons.outlined.Phone
@@ -168,7 +171,16 @@ fun ProveedoresScreen(onVolver: () -> Unit) {
                                     index = index,
                                     staggerOffsetPx = staggerOffsetPx,
                                     onEditar = { viewModel.onEditarProveedor(prov) },
-                                    onEliminar = { aEliminar = prov }
+                                    onEliminar = { aEliminar = prov },
+                                    onWhatsApp = {
+                                        val telefono = prov.telefono
+                                            .filter { it.isDigit() }
+                                            .let { if (it.startsWith("51")) it else "51$it" }
+                                        val url = "https://wa.me/$telefono"
+                                        context.startActivity(
+                                            Intent(Intent.ACTION_VIEW, Uri.parse(url))
+                                        )
+                                    }
                                 )
                             }
                             item { Spacer(Modifier.height(80.dp)) }
@@ -182,6 +194,7 @@ fun ProveedoresScreen(onVolver: () -> Unit) {
     if (state.mostrarFormulario) {
         ModalBottomSheet(
             onDismissRequest = viewModel::onCerrarFormulario,
+            sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
             containerColor = SuperficieClara,
             dragHandle = { BottomSheetDefaults.DragHandle(color = BordeClaro) },
             shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp)
@@ -223,7 +236,8 @@ private fun ProveedorCard(
     index: Int,
     staggerOffsetPx: Float,
     onEditar: () -> Unit,
-    onEliminar: () -> Unit
+    onEliminar: () -> Unit,
+    onWhatsApp: () -> Unit
 ) {
     var itemVisible by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) {
@@ -311,6 +325,21 @@ private fun ProveedorCard(
                         maxLines = 2
                     )
                 }
+            }
+
+            IconButton(
+                onClick = onWhatsApp,
+                modifier = Modifier
+                    .size(40.dp)
+                    .clip(CircleShape)
+                    .background(Color(0xFF25D366).copy(alpha = 0.15f))
+            ) {
+                Icon(
+                    Icons.Filled.Message,
+                    contentDescription = "Contactar a ${prov.nombre} por WhatsApp",
+                    tint = Color(0xFF25D366),
+                    modifier = Modifier.size(20.dp)
+                )
             }
 
             IconButton(
