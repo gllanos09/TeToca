@@ -33,4 +33,8 @@ interface ProductoDao {
 
     @Query("SELECT * FROM productos WHERE stockActual < stockMinimo ORDER BY nombre ASC")
     fun obtenerConStockBajo(): Flow<List<Producto>>
+
+    /** Versión suspend para uso en WorkManager (lectura única, no reactiva). */
+    @Query("SELECT * FROM productos WHERE stockActual < stockMinimo ORDER BY nombre ASC")
+    suspend fun obtenerConStockBajoUnaVez(): List<Producto>
 }

@@ -1,24 +1,63 @@
 package com.tetocaApp.tetoca.navigation
 
 import androidx.compose.runtime.Composable
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.tetocaApp.tetoca.ui.auth.LoginScreen
+import com.tetocaApp.tetoca.ui.auth.RegisterScreen
 import com.tetocaApp.tetoca.ui.productos.DetalleScreen
 import com.tetocaApp.tetoca.ui.productos.FormularioScreen
 import com.tetocaApp.tetoca.ui.productos.ListaProductosScreen
 import com.tetocaApp.tetoca.ui.proveedores.ProveedoresScreen
+import com.tetocaApp.tetoca.viewmodel.AuthViewModel
 
 @Composable
 fun NavGraph() {
     val navController = rememberNavController()
+    val authViewModel: AuthViewModel = viewModel()
+
+    // Si ya hay sesión activa, la app abre directo en ListaProductos.
+    // Si no, muestra Login primero.
+    val inicio = if (authViewModel.haySession) Rutas.ListaProductos.ruta
+    else Rutas.Login.ruta
 
     NavHost(
         navController = navController,
-        startDestination = Rutas.ListaProductos.ruta
+        startDestination = inicio
     ) {
+
+        // ── Auth ────────────────────────────────────────────────────────
+        composable(Rutas.Login.ruta) {
+            LoginScreen(
+                onLoginExitoso = {
+                    navController.navigate(Rutas.ListaProductos.ruta) {
+                        popUpTo(Rutas.Login.ruta) { inclusive = true }
+                    }
+                },
+                onIrARegistro = {
+                    navController.navigate(Rutas.Registro.ruta)
+                }
+            )
+        }
+
+        composable(Rutas.Registro.ruta) {
+            RegisterScreen(
+                onRegistroExitoso = {
+                    navController.navigate(Rutas.ListaProductos.ruta) {
+                        popUpTo(Rutas.Login.ruta) { inclusive = true }
+                    }
+                },
+                onIrALogin = {
+                    navController.popBackStack()
+                }
+            )
+        }
+
+        // ── App principal ───────────────────────────────────────────────
         composable(Rutas.ListaProductos.ruta) {
             ListaProductosScreen(
                 onProductoClick = { productoId ->
@@ -44,9 +83,7 @@ fun NavGraph() {
                 onEditar = { id ->
                     navController.navigate(Rutas.Formulario.crearRutaEditar(id))
                 },
-                onEliminado = {
-                    navController.popBackStack()
-                }
+                onEliminado = { navController.popBackStack() }
             )
         }
 
@@ -64,9 +101,7 @@ fun NavGraph() {
             FormularioScreen(
                 productoId = productoId,
                 onCancelar = { navController.popBackStack() },
-                onGuardado = {
-                    navController.popBackStack()
-                }
+                onGuardado = { navController.popBackStack() }
             )
         }
 
