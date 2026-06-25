@@ -13,6 +13,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Inventory2
 import androidx.compose.material.icons.filled.LocalShipping
 import androidx.compose.material.icons.filled.MonetizationOn
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -68,7 +69,10 @@ class EstadisticasViewModel(db: TeTocaDatabase) : ViewModel() {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun EstadisticasScreen(onVolver: () -> Unit) {
+fun EstadisticasScreen(
+    onVolver: () -> Unit,
+    onConfiguracionClick: () -> Unit = {}
+) {
     val context = LocalContext.current
     val db = TeTocaDatabase.getInstance(context)
     val viewModel: EstadisticasViewModel = viewModel(
@@ -88,6 +92,15 @@ fun EstadisticasScreen(onVolver: () -> Unit) {
                 navigationIcon = {
                     IconButton(onClick = onVolver) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Volver atrás")
+                    }
+                },
+                actions = {
+                    IconButton(onClick = onConfiguracionClick) {
+                        Icon(
+                            Icons.Filled.Settings,
+                            contentDescription = "Configuración del negocio",
+                            tint = SobreAzul
+                        )
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(

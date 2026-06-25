@@ -3,16 +3,19 @@ package com.tetocaApp.tetoca.data.local
 import android.content.Context
 import androidx.room.Database
 import androidx.room.RoomDatabase
+import androidx.room.TypeConverters
 
 @Database(
-    entities = [Producto::class, Proveedor::class],
-    version = 1,
+    entities = [Producto::class, Proveedor::class, Negocio::class],
+    version = 2,
     exportSchema = false
 )
+@TypeConverters(TeTocaConverters::class)
 abstract class TeTocaDatabase : RoomDatabase() {
 
     abstract fun productoDao(): ProductoDao
     abstract fun proveedorDao(): ProveedorDao
+    abstract fun negocioDao(): NegocioDao
 
     companion object {
         @Volatile
@@ -24,7 +27,9 @@ abstract class TeTocaDatabase : RoomDatabase() {
                     context.applicationContext,
                     TeTocaDatabase::class.java,
                     "tetoca_database"
-                ).build()
+                )
+                    .fallbackToDestructiveMigration() // borra y recrea si hay cambio de versión
+                    .build()
                 INSTANCE = instancia
                 instancia
             }

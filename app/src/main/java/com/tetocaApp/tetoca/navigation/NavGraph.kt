@@ -9,6 +9,7 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.tetocaApp.tetoca.ui.auth.LoginScreen
 import com.tetocaApp.tetoca.ui.auth.RegisterScreen
+import com.tetocaApp.tetoca.ui.config.ConfiguracionScreen
 import com.tetocaApp.tetoca.ui.estadisticas.EstadisticasScreen
 import com.tetocaApp.tetoca.ui.productos.DetalleScreen
 import com.tetocaApp.tetoca.ui.productos.FormularioScreen
@@ -113,7 +114,17 @@ fun NavGraph() {
         }
 
         composable(Rutas.Estadisticas.ruta) {
-            EstadisticasScreen(onVolver = { navController.popBackStack() })
+            EstadisticasScreen(
+                onVolver = { navController.popBackStack() },
+                onConfiguracionClick = { navController.navigate(Rutas.Configuracion.ruta) }
+            )
+        }
+
+        composable(Rutas.Configuracion.ruta) {
+            ConfiguracionScreen(
+                onVolver = { navController.popBackStack() },
+                onGuardado = { navController.popBackStack() }
+            )
         }
     }
 }
