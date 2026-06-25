@@ -342,6 +342,8 @@ private fun ProveedorCard(
                 )
             }
 
+            Spacer(Modifier.width(8.dp))
+
             IconButton(
                 onClick = onEliminar,
                 modifier = Modifier

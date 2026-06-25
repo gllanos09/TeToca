@@ -5,6 +5,10 @@ plugins {
     alias(libs.plugins.google.services)
 }
 
+base {
+    archivesName.set("TeToca")
+}
+
 android {
     namespace = "com.tetocaApp.tetoca"
     compileSdk = 36
